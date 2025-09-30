@@ -2,7 +2,7 @@ import { Text } from '@/components/Themed';
 import Waves from '@/components/Waves';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -87,11 +87,9 @@ export default function LoginScreen() {
 
             <View style={styles.footerRow}>
               <Text style={styles.footerText}>Não tem conta?</Text>
-              <Link href="/cadastro" asChild>
-                <TouchableOpacity>
-                  <Text style={[styles.footerText, { color: primary, fontFamily: 'Outfit_600SemiBold' }]}> Cadastre-se</Text>
-                </TouchableOpacity>
-              </Link>
+              <TouchableOpacity onPress={() => router.push('/cadastro')}>
+                <Text style={[styles.footerText, { color: primary, fontFamily: 'Outfit_600SemiBold' }]}> Cadastre-se</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
