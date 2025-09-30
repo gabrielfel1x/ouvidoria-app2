@@ -3,7 +3,7 @@ import Waves from '@/components/Waves';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Etapa = {
@@ -269,6 +269,13 @@ export default function CadastroScreen() {
           </View>
         </View>
       </ScrollView>
+      <View style={styles.bottomImageWrap} pointerEvents="none">
+        {Platform.OS !== 'web' ? (
+          <Image source={require('../assets/images/megafone.png')} style={styles.bottomIllustration} resizeMode="contain" />
+        ) : (
+          <Image source={require('../assets/images/splash-icon.png')} style={styles.bottomIllustration} resizeMode="contain" />
+        )}
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -296,7 +303,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 36,
     fontFamily: 'Outfit_700Bold',
     color: '#1F2937',
     textAlign: 'center',
@@ -404,6 +411,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Outfit_600SemiBold',
     color: '#ffffff',
+  },
+  bottomImageWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 8,
+  },
+  bottomIllustration: {
+    width: 360,
+    height: 230,
+    opacity: 0.95,
   },
 });
 
