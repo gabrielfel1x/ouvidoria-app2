@@ -171,7 +171,7 @@ export default function ReclamarScreen() {
         >
           {categories.map((category) => (
              <View key={category.id} style={styles.categorySection}>
-               <View style={[styles.categoryCard, { borderLeftColor: category.color }]}>
+               <View style={[styles.categoryCard]}>
                  <View style={styles.categoryHeader}>
                    <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
                      <Ionicons name={category.icon as any} size={24} color="#FFFFFF" />

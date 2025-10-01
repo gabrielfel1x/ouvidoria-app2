@@ -1,5 +1,6 @@
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import {
@@ -33,7 +34,10 @@ export default function PerfilScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.menuSection}>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/minhas-manifestacoes')}
+          >
             <Ionicons name="document-text-outline" size={24} color={primary} />
             <Text style={styles.menuText}>Minhas Manifestações</Text>
             <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />

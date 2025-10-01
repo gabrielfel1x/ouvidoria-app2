@@ -78,9 +78,10 @@ export default function HomeScreen() {
 
   const getCurrentTime = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
+    if (hour >= 5 && hour < 12) return 'Bom dia';
+    if (hour >= 12 && hour < 18) return 'Boa tarde';
+    if (hour > 18 && hour < 24 || hour >= 0 && hour < 5) return 'Boa noite';
+    return 'Olá';
   };
 
   return (
