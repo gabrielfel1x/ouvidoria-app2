@@ -1,5 +1,5 @@
 import { api } from '@/api/config';
-import { CreateOcorrenciaRequest, Ocorrencia } from '@/types/types';
+import { CreateOcorrenciaRequest, Ocorrencia, RespostaOcorrencia } from '@/types/types';
 
 export async function createOcorrencia(data: CreateOcorrenciaRequest): Promise<Ocorrencia> {
   const response = await api.post<Ocorrencia>('/ocorrencias', data);
@@ -45,5 +45,10 @@ export async function salvarSatisfacaoOcorrencia(ocorrenciaId: number, satisfaca
     ocorrencia_id: ocorrenciaId,
     satisfacao_do_usuario: satisfacao
   });
+  return response.data;
+}
+
+export async function getRespostasOcorrencia(ocorrenciaId: number): Promise<RespostaOcorrencia[]> {
+  const response = await api.get<RespostaOcorrencia[]>(`/ocorrencias/${ocorrenciaId}/respostas_ocorrencia`);
   return response.data;
 }

@@ -90,6 +90,26 @@ export interface Ocorrencia {
   };
 }
 
+export interface RespostaReclamacao {
+  id: number;
+  data: string;
+  descricao: string;
+  reclamacao_id: number;
+  administrador_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RespostaOcorrencia {
+  id: number;
+  data: string;
+  descricao: string;
+  ocorrencia_id: number;
+  administrador_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Reclamacao {
   id: number;
   numero_protocolo: string;

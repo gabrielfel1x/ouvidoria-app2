@@ -283,7 +283,7 @@ export default function DetalhesOcorrenciaScreen() {
             <View style={styles.helpCard}>
               <Ionicons name="information-circle" size={20} color="#6366F1" />
               <Text style={styles.helpText}>
-                Agradecemos seu {ocorrencia.tipo.toLowerCase()}! 
+                Agradecemos sua {ocorrencia.tipo.toLowerCase()}! 
                 Acompanhe o andamento através do protocolo.
               </Text>
             </View>
@@ -291,7 +291,7 @@ export default function DetalhesOcorrenciaScreen() {
 
           {/* Botões de Ação */}
           <View style={styles.actionsContainer}>
-            <TouchableOpacity style={[styles.actionButton, styles.actionButtonFull]}>
+            <TouchableOpacity style={[styles.actionButton, styles.actionButtonFull]} onPress={() => router.push({ pathname: '/respostas-ocorrencia', params: { id } })}>
               <Ionicons name="chatbubble-outline" size={20} color="#6366F1" />
               <Text style={styles.actionButtonText}>Ver Respostas</Text>
             </TouchableOpacity>

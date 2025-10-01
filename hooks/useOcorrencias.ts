@@ -1,5 +1,5 @@
-import { createOcorrencia, deleteOcorrencia, getAllOcorrencias, getOcorrencia, getOcorrenciasByUser, salvarSatisfacaoOcorrencia, searchOcorrencias, updateOcorrencia } from '@/services/ocorrencias';
-import { CreateOcorrenciaRequest, Ocorrencia } from '@/types/types';
+import { createOcorrencia, deleteOcorrencia, getAllOcorrencias, getOcorrencia, getOcorrenciasByUser, getRespostasOcorrencia, salvarSatisfacaoOcorrencia, searchOcorrencias, updateOcorrencia } from '@/services/ocorrencias';
+import { CreateOcorrenciaRequest, Ocorrencia, RespostaOcorrencia } from '@/types/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useCreateOcorrencia() {
@@ -88,5 +88,13 @@ export function useSalvarSatisfacaoOcorrencia() {
     onError: (error) => {
       console.error('Erro ao salvar satisfação da ocorrência:', error);
     },
+  });
+}
+
+export function useRespostasOcorrencia(ocorrenciaId: number, enabled = true) {
+  return useQuery<RespostaOcorrencia[], Error>({
+    queryKey: ['ocorrencias', 'respostas', ocorrenciaId],
+    queryFn: () => getRespostasOcorrencia(ocorrenciaId),
+    enabled: enabled && !!ocorrenciaId,
   });
 }

@@ -1,5 +1,5 @@
 import { api } from '@/api/config';
-import { CreateReclamacaoRequest, Reclamacao } from '@/types/types';
+import { CreateReclamacaoRequest, Reclamacao, RespostaReclamacao } from '@/types/types';
 
 /**
  * Cria uma nova reclamação
@@ -49,5 +49,10 @@ export async function updateReclamacao(id: number, data: Partial<CreateReclamaca
  */
 export async function deleteReclamacao(id: number): Promise<void> {
   await api.delete(`/reclamacoes/${id}`);
+}
+
+export async function getRespostasReclamacao(reclamacaoId: number): Promise<RespostaReclamacao[]> {
+  const response = await api.get<RespostaReclamacao[]>(`/reclamacoes/${reclamacaoId}/respostas`);
+  return response.data;
 }
 

@@ -1,5 +1,5 @@
-import { createReclamacao, deleteReclamacao, getReclamacao, getReclamacoesByUser, updateReclamacao } from '@/services/reclamacoes';
-import { CreateReclamacaoRequest, Reclamacao } from '@/types/types';
+import { createReclamacao, deleteReclamacao, getReclamacao, getReclamacoesByUser, getRespostasReclamacao, updateReclamacao } from '@/services/reclamacoes';
+import { CreateReclamacaoRequest, Reclamacao, RespostaReclamacao } from '@/types/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 /**
@@ -68,6 +68,14 @@ export function useDeleteReclamacao() {
     onError: (error) => {
       console.error('Erro ao deletar reclamação:', error);
     },
+  });
+}
+
+export function useRespostasReclamacao(reclamacaoId: number, enabled = true) {
+  return useQuery<RespostaReclamacao[], Error>({
+    queryKey: ['reclamacoes', 'respostas', reclamacaoId],
+    queryFn: () => getRespostasReclamacao(reclamacaoId),
+    enabled: enabled && !!reclamacaoId,
   });
 }
 

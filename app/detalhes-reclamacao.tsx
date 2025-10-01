@@ -319,12 +319,7 @@ export default function DetalhesReclamacaoScreen() {
 
           {/* Botões de Ação */}
           <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="share-social-outline" size={20} color="#6366F1" />
-              <Text style={styles.actionButtonText}>Compartilhar</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]}>
+            <TouchableOpacity style={[styles.actionButton, styles.actionButtonFull]} onPress={() => router.push({ pathname: '/respostas-reclamacao', params: { id } })}>
               <Ionicons name="chatbubble-outline" size={20} color="#6366F1" />
               <Text style={styles.actionButtonText}>Ver Respostas</Text>
             </TouchableOpacity>
@@ -642,6 +637,9 @@ const styles = StyleSheet.create({
   actionButtonSecondary: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E5E7EB',
+  },
+  actionButtonFull: {
+    flex: 1,
   },
   actionButtonText: {
     fontSize: 14,
