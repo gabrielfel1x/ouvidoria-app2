@@ -1,4 +1,6 @@
 import Colors from '@/constants/Colors';
+import { useAuth } from '@/context/auth-context';
+import { useCreateReclamacao } from '@/hooks/useReclamacoes';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -26,11 +28,12 @@ export default function ReclamarFormularioScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const primary = Colors.light.primary;
+  const { user } = useAuth();
+  const createReclamacaoMutation = useCreateReclamacao();
   
   const [photo, setPhoto] = useState<string | null>(null);
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
@@ -272,7 +275,33 @@ export default function ReclamarFormularioScreen() {
     setAddressSuggestions([]);
   };
 
+  /**
+   * Converte imagem URI para base64 usando fetch
+   * Retorna a imagem no formato completo: data:image/[tipo];base64,[dados]
+   */
+  const convertImageToBase64 = async (uri: string): Promise<string | null> => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          // Mantém o formato completo com prefixo data:image/...;base64,
+          const base64String = reader.result as string;
+          resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Erro ao converter imagem:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async () => {
+    // Validações
     if (!description.trim()) {
       toast.error('Campo obrigatório', {
         description: 'Por favor, descreva o problema.',
@@ -287,14 +316,83 @@ export default function ReclamarFormularioScreen() {
       return;
     }
 
-    setIsSubmitting(true);
-    
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success(
-        'Reclamação enviada!'
-      );
-    }, 2000);
+    if (!user?.id) {
+      toast.error('Erro', {
+        description: 'Usuário não autenticado.',
+      });
+      return;
+    }
+
+    const categoryId = params.categoryId ? Number(params.categoryId) : null;
+    if (!categoryId || isNaN(categoryId)) {
+      toast.error('Erro', {
+        description: 'Categoria não identificada.',
+      });
+      return;
+    }
+
+    try {
+      let imageBase64: string | undefined;
+      if (photo) {
+        const base64 = await convertImageToBase64(photo);
+        if (base64) {
+          imageBase64 = base64;
+        }
+      }
+
+      const localizacao = location 
+        ? `${location.latitude},${location.longitude}` 
+        : undefined;
+
+      const dataAtual = new Date().toISOString().split('T')[0];
+
+      // Monta o objeto conforme a documentação da API
+      const reclamacaoData: any = {
+        usuario_id: user.id,
+        categoria_id: categoryId,
+        descricao: description.trim(),
+        data: dataAtual,
+        endereco: address.trim(),
+      };
+
+      // Adiciona campos opcionais apenas se tiverem valor
+      if (localizacao) {
+        reclamacaoData.localizacao = localizacao;
+      }
+
+      if (imageBase64) {
+        reclamacaoData.imagem = imageBase64;
+      }
+
+      console.log(reclamacaoData);
+      
+      await createReclamacaoMutation.mutateAsync(reclamacaoData);
+
+      toast.success('Reclamação enviada com sucesso!', {
+        description: 'Você receberá atualizações sobre o andamento.',
+      });
+
+      // Aguarda um pouco e volta para a tela anterior
+      setTimeout(() => {
+        router.back();
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Erro ao enviar reclamação:', error);
+      
+      // Tratamento de erros
+      if (error?.response?.status === 422) {
+        const validationErrors = error.response.data;
+        const firstError = Object.values(validationErrors)[0];
+        toast.error('Erro de validação', {
+          description: Array.isArray(firstError) ? firstError[0] : 'Verifique os campos preenchidos.',
+        });
+      } else {
+        toast.error('Erro ao enviar', {
+          description: error?.response?.data?.erro || error?.message || 'Não foi possível enviar a reclamação. Tente novamente.',
+        });
+      }
+    }
   };
 
   const categoryTitle = params.categoryTitle as string || 'Reclamação';
@@ -521,15 +619,15 @@ export default function ReclamarFormularioScreen() {
             <TouchableOpacity 
               style={[styles.submitButton, { backgroundColor: primary }]}
               onPress={handleSubmit}
-              disabled={isSubmitting}
+              disabled={createReclamacaoMutation.isPending}
             >
               <Ionicons 
-                name={isSubmitting ? "hourglass-outline" : "send-outline"} 
+                name={createReclamacaoMutation.isPending ? "hourglass-outline" : "send-outline"} 
                 size={24} 
                 color="#FFFFFF" 
               />
               <Text style={styles.submitButtonText}>
-                {isSubmitting ? 'Enviando...' : 'Enviar Reclamação'}
+                {createReclamacaoMutation.isPending ? 'Enviando...' : 'Enviar Reclamação'}
               </Text>
             </TouchableOpacity>
           </Animated.View>

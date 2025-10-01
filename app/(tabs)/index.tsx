@@ -96,9 +96,6 @@ export default function HomeScreen() {
             <Text style={styles.headerSubtitle}>Sua voz é importante</Text>
           </View>
         </View>
-        <TouchableOpacity activeOpacity={0.7} style={styles.headerRight}>
-          <Ionicons name="person-circle-outline" size={24} color="#111827" />
-        </TouchableOpacity>
       </View>
 
       <ScrollView 

@@ -1,9 +1,9 @@
 import { queryClient } from '@/src/config/queryClient';
 import {
-  Outfit_400Regular,
-  Outfit_500Medium,
-  Outfit_600SemiBold,
-  Outfit_700Bold,
+    Outfit_400Regular,
+    Outfit_500Medium,
+    Outfit_600SemiBold,
+    Outfit_700Bold,
 } from '@expo-google-fonts/outfit';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
@@ -18,11 +18,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from 'sonner-native';
 
 export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary
+    // Catch any errors thrown by the Layout component.
+    ErrorBoundary
 } from 'expo-router';
 
 export const unstable_settings = {
@@ -67,15 +68,37 @@ function RootLayoutNav() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="cadastro" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          </Stack>
-          <Toaster theme='light' />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen 
+                name="index" 
+                options={{ 
+                  headerShown: false,
+                  gestureEnabled: false,
+                }} 
+              />
+              <Stack.Screen 
+                name="(tabs)" 
+                options={{ 
+                  headerShown: false,
+                  gestureEnabled: false, // Bloqueia gesto de voltar
+                  headerBackVisible: false, // Remove botão voltar
+                  animation: 'none', // Remove animação de transição
+                }} 
+              />
+              <Stack.Screen 
+                name="cadastro" 
+                options={{ 
+                  headerShown: false,
+                  gestureEnabled: true, // Permite voltar do cadastro para login
+                }} 
+              />
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            </Stack>
+            <Toaster theme='light' />
+          </ThemeProvider>
+        </AuthProvider>
         {Platform.OS === 'web' ? <ReactQueryDevtools initialIsOpen={false} /> : null}
       </QueryClientProvider>
     </GestureHandlerRootView>

@@ -1,9 +1,11 @@
 import Colors from '@/constants/Colors';
+import { useCategorias } from '@/hooks/useCategorias';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   ScrollView,
@@ -24,6 +26,7 @@ interface ComplaintType {
 
 interface Category {
   id: string;
+  apiId: number;
   title: string;
   description: string;
   icon: string;
@@ -36,6 +39,9 @@ export default function ReclamarScreen() {
   const primary = Colors.light.primary;
   const fadeAnim = useRef(new Animated.Value(0));
   const slideAnim = useRef(new Animated.Value(50));
+  
+  // Busca categorias do backend
+  const { data: categoriasBackend, isLoading, error } = useCategorias();
 
   useEffect(() => {
     Animated.parallel([
@@ -52,74 +58,102 @@ export default function ReclamarScreen() {
     ]).start();
   }, []);
 
-  const categories: Category[] = [
-    {
-      id: 'infraestrutura',
-      title: 'Infraestrutura',
-      description: 'Problemas com ruas, calçadas e estruturas urbanas',
-      icon: 'construct-outline',
-      color: '#8B5CF6',
-      complaints: [
-        { id: 'buraco', title: 'Buraco na rua', icon: 'radio-button-off-outline' },
-        { id: 'queda-arvore', title: 'Queda de árvore', icon: 'leaf-outline' },
-        { id: 'iluminacao', title: 'Iluminação pública', icon: 'bulb-outline' },
-        { id: 'entulho', title: 'Entulho', icon: 'cube-outline' },
-        { id: 'limpeza-publica', title: 'Limpeza pública', icon: 'brush-outline' }
-      ]
-    },
-    {
-      id: 'transito',
-      title: 'Trânsito',
-      description: 'Problemas relacionados ao tráfego e mobilidade',
-      icon: 'car-outline',
-      color: '#F59E0B',
-      complaints: [
-        { id: 'acidente', title: 'Acidente', icon: 'warning-outline' },
-        { id: 'estacionamento-irregular', title: 'Estacionamento irregular', icon: 'car-sport-outline' },
-        { id: 'sinais-transito', title: 'Sinais de trânsito', icon: 'trail-sign-outline' },
-        { id: 'poluicao-sonora', title: 'Poluição sonora', icon: 'volume-high-outline' }
-      ]
-    },
-    {
-      id: 'agua',
-      title: 'Serviço de Água',
-      description: 'Problemas com fornecimento e qualidade da água',
-      icon: 'water-outline',
-      color: '#3B82F6',
-      complaints: [
-        { id: 'falta-agua', title: 'Falta de água', icon: 'remove-circle-outline' },
-        { id: 'vazamento', title: 'Vazamento', icon: 'water-outline' },
-        { id: 'qualidade-agua', title: 'Qualidade da água', icon: 'flask-outline' }
-      ]
-    },
-    {
-      id: 'saude',
-      title: 'Saúde Pública',
-      description: 'Problemas relacionados à saúde e bem-estar',
-      icon: 'medical-outline',
-      color: '#EF4444',
-      complaints: [
-        { id: 'dengue', title: 'Dengue', icon: 'bug-outline' },
-        { id: 'ueiro', title: 'Ueiro', icon: 'medical-outline' },
-        { id: 'lixo', title: 'Acúmulo de lixo', icon: 'trash-outline' }
-      ]
-    },
-    {
-      id: 'outros',
-      title: 'Outros',
-      description: 'Outras reclamações não categorizadas',
-      icon: 'ellipsis-horizontal-outline',
-      color: '#6B7280',
-      complaints: [
-        { id: 'outro', title: 'Outro', icon: 'help-circle-outline' }
-      ]
-    }
-  ];
+  // Mapeia categorias do backend para a estrutura da UI
+  const categories = useMemo(() => {
+    if (!categoriasBackend) return [];
 
-  const handleComplaintPress = (category: Category, complaint: ComplaintType) => {
+    // Configurações de ícones e cores por setor
+    const setorConfig: Record<string, { icon: string; color: string; description: string }> = {
+      infraestrutura: {
+        icon: 'construct-outline',
+        color: '#8B5CF6',
+        description: 'Problemas com ruas, calçadas e estruturas urbanas'
+      },
+      transito: {
+        icon: 'car-outline',
+        color: '#F59E0B',
+        description: 'Problemas relacionados ao tráfego e mobilidade'
+      },
+      agua: {
+        icon: 'water-outline',
+        color: '#3B82F6',
+        description: 'Problemas com fornecimento e qualidade da água'
+      },
+      saude: {
+        icon: 'medical-outline',
+        color: '#EF4444',
+        description: 'Problemas relacionados à saúde e bem-estar'
+      },
+      denuncia: {
+        icon: 'warning-outline',
+        color: '#DC2626',
+        description: 'Denúncias e irregularidades'
+      },
+      outros: {
+        icon: 'ellipsis-horizontal-outline',
+        color: '#6B7280',
+        description: 'Outras reclamações não categorizadas'
+      }
+    };
+
+    // Agrupa categorias por setor
+    const categoriasPorSetor = categoriasBackend.reduce((acc, categoria) => {
+      if (!acc[categoria.setor]) {
+        acc[categoria.setor] = [];
+      }
+      acc[categoria.setor].push(categoria);
+      return acc;
+    }, {} as Record<string, typeof categoriasBackend>);
+
+    // Mapeia cada setor para uma categoria da UI
+    return Object.entries(categoriasPorSetor).map(([setor, categorias]) => {
+      const config = setorConfig[setor] || setorConfig.outros;
+      
+      return {
+        id: setor,
+        apiId: categorias[0]?.id || 0,
+        title: setor.charAt(0).toUpperCase() + setor.slice(1),
+        description: config.description,
+        icon: config.icon,
+        color: config.color,
+        complaints: categorias.map(cat => ({
+          id: cat.id.toString(),
+          title: cat.nome,
+          icon: getIconForCategoria(cat.nome),
+          categoriaId: cat.id
+        }))
+      } as Category & { complaints: (ComplaintType & { categoriaId: number })[] };
+    });
+  }, [categoriasBackend]);
+
+  // Função auxiliar para mapear ícones baseado no nome da categoria
+  function getIconForCategoria(nome: string): string {
+    const iconMap: Record<string, string> = {
+      'Buraco': 'radio-button-off-outline',
+      'Queda de árvore': 'leaf-outline',
+      'Iluminação': 'bulb-outline',
+      'Poluição Sonora': 'volume-high-outline',
+      'Dengue': 'bug-outline',
+      'Boeiro': 'square-outline',
+      'Limpeza Pública': 'brush-outline',
+      'Acidente': 'warning-outline',
+      'Estacionamento Irregular': 'car-sport-outline',
+      'Sinais de Trânsito': 'trail-sign-outline',
+      'Denuncia': 'alert-circle-outline',
+      'Outros': 'help-circle-outline',
+      'Entulho': 'cube-outline',
+      'Vazamento': 'water-outline',
+      'Falta de água': 'remove-circle-outline',
+    };
+    
+    return iconMap[nome] || 'ellipse-outline';
+  }
+
+  const handleComplaintPress = (category: Category, complaint: ComplaintType & { categoriaId?: number }) => {
     router.push({
       pathname: '/reclamar-formulario',
       params: { 
+        categoryId: complaint.categoriaId?.toString() || category.apiId.toString(),
         category: category.id, 
         categoryTitle: category.title,
         complaintType: complaint.id,
@@ -127,6 +161,35 @@ export default function ReclamarScreen() {
       }
     });
   };
+
+  // Renderiza loading
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.centerContent, { paddingTop: insets.top }]}>
+        <StatusBar style="light" />
+        <ActivityIndicator size="large" color={primary} />
+        <Text style={styles.loadingText}>Carregando categorias...</Text>
+      </View>
+    );
+  }
+
+  // Renderiza erro
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent, { paddingTop: insets.top }]}>
+        <StatusBar style="light" />
+        <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
+        <Text style={styles.errorTitle}>Erro ao carregar categorias</Text>
+        <Text style={styles.errorText}>{error.message}</Text>
+        <TouchableOpacity 
+          style={[styles.retryButton, { backgroundColor: primary }]}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.retryButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
@@ -212,6 +275,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontFamily: 'Outfit_500Medium',
+    color: '#6B7280',
+  },
+  errorTitle: {
+    marginTop: 16,
+    fontSize: 20,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  errorText: {
+    marginTop: 8,
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#FFFFFF',
   },
   header: {
     paddingHorizontal: 20,

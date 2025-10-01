@@ -1,11 +1,13 @@
 import { Text } from '@/components/Themed';
 import Waves from '@/components/Waves';
 import Colors from '@/constants/Colors';
+import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
 export default function LoginScreen() {
   const [emailOrCpf, setEmailOrCpf] = useState('');
@@ -13,15 +15,40 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
+  const { signIn, isLoggedIn, isLoading: authLoading } = useAuth();
+  const hasRedirected = useRef(false);
 
   const isDisabled = useMemo(() => !emailOrCpf.trim() || !password.trim() || isLoading, [emailOrCpf, password, isLoading]);
 
+  // Se já estiver logado, redireciona para a home (apenas uma vez)
+  useEffect(() => {
+    if (!authLoading && isLoggedIn && !hasRedirected.current) {
+      hasRedirected.current = true;
+      router.replace('/(tabs)');
+    }
+  }, [isLoggedIn, authLoading]);
+
   const handleLogin = async () => {
     if (isDisabled) return;
-    setIsLoading(true);
-    setTimeout(() => {
+    
+    try {
+      setIsLoading(true);
+      
+      await signIn({
+        cpf_ou_email: emailOrCpf.trim(),
+        senha: password,
+      });
+
+      // Sucesso - o redirecionamento acontece automaticamente pelo useEffect
+      toast.success('Login realizado com sucesso!');
+      
+    } catch (error: any) {
+      // Tratamento de erros
+      const errorMessage = error?.response?.data?.erro || error?.message || 'Erro ao fazer login. Tente novamente.';
+      toast.error(errorMessage);
+    } finally {
       setIsLoading(false);
-    }, 1200);
+    }
   };
 
   const primary = Colors.light.primary;
@@ -92,14 +119,6 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Botão temporário de desenvolvimento */}
-            <TouchableOpacity 
-              onPress={() => router.push('/(tabs)')} 
-              style={styles.devButton}
-            >
-              <Ionicons name="code-slash" size={16} color="#FFFFFF" style={styles.devButtonIcon} />
-              <Text style={styles.devButtonText}>Acesso Dev - Home</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -178,7 +197,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     height: 56,
-    backgroundColor: '#f0574f',
+    backgroundColor: Colors.light.primary,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
@@ -212,24 +231,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-  },
-  devButton: {
-    height: 48,
-    backgroundColor: '#6B7280',
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  devButtonIcon: {
-    marginRight: 4,
-  },
-  devButtonText: {
-    fontSize: 14,
-    fontFamily: 'Outfit_600SemiBold',
-    color: '#ffffff',
   },
 });
 
