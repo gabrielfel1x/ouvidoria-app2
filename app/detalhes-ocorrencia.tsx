@@ -1,8 +1,10 @@
+import { useOcorrencia } from '@/hooks/useOcorrencias';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   ScrollView,
   StyleSheet,
@@ -65,8 +67,11 @@ const tipoConfig: Record<string, { color: string; icon: string; bg: string; titu
 export default function DetalhesOcorrenciaScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const { id, tipo } = params;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+
+  const { data: ocorrencia, isLoading, error } = useOcorrencia(Number(id));
 
   useEffect(() => {
     Animated.parallel([
@@ -83,56 +88,29 @@ export default function DetalhesOcorrenciaScreen() {
     ]).start();
   }, []);
 
-  // Dados mockados - em produção viriam da API baseado no ID
-  const tipo = params.tipo as string || 'Elogio';
-  
-  // Mapeamento de dados mockados por tipo
-  const dadosMockados: Record<string, any> = {
-    'Elogio': {
-      id: 1,
-      numero_protocolo: '2024092800456',
-      tipo: 'Elogio',
-      setor: 'Saúde',
-      data: '2024-09-28',
-      assunto: 'Excelente atendimento na UBS',
-      detalhes: 'Fui muito bem atendido pela equipe de enfermagem da UBS Central. Os profissionais foram atenciosos, competentes e demonstraram grande empatia durante todo o atendimento. Gostaria de parabenizar especialmente a enfermeira Maria e o Dr. João pelo excelente trabalho.',
-      status: 'Em Aberto',
-      usuario_id: 1,
-      created_at: '2024-09-28T11:30:00Z',
-      updated_at: '2024-09-28T11:30:00Z',
-      satisfacao_do_usuario: null
-    },
-    'Sugestão': {
-      id: 1,
-      numero_protocolo: '2024092800567',
-      tipo: 'Sugestão',
-      setor: 'Infraestrutura',
-      data: '2024-09-28',
-      assunto: 'Instalação de faixa de pedestres',
-      detalhes: 'Sugiro a instalação de uma faixa de pedestres na Rua das Acácias, próximo à escola. O local tem grande movimentação de crianças e a travessia é perigosa, principalmente nos horários de entrada e saída das aulas. A faixa elevada seria ainda mais eficaz para garantir a segurança.',
-      status: 'Em Andamento',
-      usuario_id: 1,
-      created_at: '2024-09-28T10:15:00Z',
-      updated_at: '2024-09-29T08:30:00Z',
-      satisfacao_do_usuario: null
-    },
-    'Denúncia': {
-      id: 1,
-      numero_protocolo: '2024092800678',
-      tipo: 'Denúncia',
-      setor: 'Corrupção',
-      data: '2024-09-28',
-      assunto: 'Irregularidade em licitação',
-      detalhes: 'Denuncio possível irregularidade no processo licitatório para reforma da praça municipal. Observei que o edital favorece uma empresa específica com requisitos muito particulares. Além disso, o prazo para apresentação de propostas foi extremamente curto, dificultando a participação de outros interessados.',
-      status: 'Em Andamento',
-      usuario_id: 1,
-      created_at: '2024-09-28T13:45:00Z',
-      updated_at: '2024-09-29T10:20:00Z',
-      satisfacao_do_usuario: null
-    }
-  };
-  
-  const ocorrencia = dadosMockados[tipo] || dadosMockados['Elogio'];
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + 20, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={styles.loadingText}>Carregando ocorrência...</Text>
+      </View>
+    );
+  }
+
+  if (error || !ocorrencia) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + 20, justifyContent: 'center', alignItems: 'center' }]}>
+        <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+        <Text style={styles.errorTitle}>Erro ao carregar</Text>
+        <Text style={styles.errorSubtitle}>
+          {error?.message || 'Não foi possível carregar os detalhes da ocorrência'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <Text style={styles.retryButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const statusInfo = statusConfig[ocorrencia.status] || statusConfig['Em Aberto'];
   const tipoInfo = tipoConfig[ocorrencia.tipo] || tipoConfig['Elogio'];
@@ -313,12 +291,7 @@ export default function DetalhesOcorrenciaScreen() {
 
           {/* Botões de Ação */}
           <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="share-social-outline" size={20} color="#6366F1" />
-              <Text style={styles.actionButtonText}>Compartilhar</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]}>
+            <TouchableOpacity style={[styles.actionButton, styles.actionButtonFull]}>
               <Ionicons name="chatbubble-outline" size={20} color="#6366F1" />
               <Text style={styles.actionButtonText}>Ver Respostas</Text>
             </TouchableOpacity>
@@ -561,10 +534,45 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderColor: '#E5E7EB',
   },
+  actionButtonFull: {
+    flex: 1,
+  },
   actionButtonText: {
     fontSize: 14,
     fontFamily: 'Outfit_600SemiBold',
     color: '#6366F1',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_500Medium',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#FFFFFF',
   },
 });
 

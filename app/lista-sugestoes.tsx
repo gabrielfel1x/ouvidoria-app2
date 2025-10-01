@@ -1,32 +1,24 @@
+import { useAuth } from '@/context/auth-context';
+import { useDeleteOcorrencia, useOcorrenciasByUser } from '@/hooks/useOcorrencias';
+import { Ocorrencia, TipoOcorrencia } from '@/types/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Animated,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
-interface Ocorrencia {
-  id: number;
-  numero_protocolo: string;
-  tipo: string;
-  setor: string;
-  data: string;
-  assunto: string;
-  detalhes: string;
-  status: string;
-  usuario_id: number;
-  created_at: string;
-  updated_at: string;
-  satisfacao_do_usuario?: string | null;
-}
 
 // Status config
 const statusConfig: Record<string, { label: string; color: string; icon: string; bg: string }> = {
@@ -58,10 +50,15 @@ const statusConfig: Record<string, { label: string; color: string; icon: string;
 
 export default function ListaSugestoesScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [ocorrenciaToDelete, setOcorrenciaToDelete] = useState<Ocorrencia | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { data: sugestoes = [], isLoading, error, refetch } = useOcorrenciasByUser(user?.id || 0, TipoOcorrencia.SUGESTAO);
+  const deleteOcorrenciaMutation = useDeleteOcorrencia();
 
   useEffect(() => {
     Animated.parallel([
@@ -78,65 +75,14 @@ export default function ListaSugestoesScreen() {
     ]).start();
   }, []);
 
-  // Dados mockados
-  const sugestoes: Ocorrencia[] = [
-    {
-      id: 1,
-      numero_protocolo: '2024092800567',
-      tipo: 'Sugestão',
-      setor: 'Infraestrutura',
-      data: '2024-09-28',
-      assunto: 'Instalação de faixa de pedestres',
-      detalhes: 'Sugiro a instalação de uma faixa de pedestres na Rua das Acácias, próximo à escola. O local tem grande movimentação de crianças.',
-      status: 'Em Andamento',
-      usuario_id: 1,
-      created_at: '2024-09-28T10:15:00Z',
-      updated_at: '2024-09-29T08:30:00Z',
-      satisfacao_do_usuario: null
-    },
-    {
-      id: 2,
-      numero_protocolo: '2024092600345',
-      tipo: 'Sugestão',
-      setor: 'Meio Ambiente',
-      data: '2024-09-26',
-      assunto: 'Programa de coleta seletiva',
-      detalhes: 'Seria interessante implementar um programa de coleta seletiva no bairro Vila Nova, com pontos de coleta estratégicos.',
-      status: 'Em Aberto',
-      usuario_id: 1,
-      created_at: '2024-09-26T15:45:00Z',
-      updated_at: '2024-09-26T15:45:00Z',
-      satisfacao_do_usuario: null
-    },
-    {
-      id: 3,
-      numero_protocolo: '2024092300178',
-      tipo: 'Sugestão',
-      setor: 'Lazer',
-      data: '2024-09-23',
-      assunto: 'Revitalização da praça',
-      detalhes: 'Sugiro a revitalização da Praça Central com novos brinquedos, academia ao ar livre e iluminação adequada.',
-      status: 'Resolvido',
-      usuario_id: 1,
-      created_at: '2024-09-23T11:20:00Z',
-      updated_at: '2024-09-27T14:00:00Z',
-      satisfacao_do_usuario: 'Satisfeito'
-    },
-    {
-      id: 4,
-      numero_protocolo: '2024092000112',
-      tipo: 'Sugestão',
-      setor: 'Transporte',
-      data: '2024-09-20',
-      assunto: 'Nova linha de ônibus',
-      detalhes: 'Gostaria de sugerir a criação de uma linha de ônibus ligando o bairro São José ao centro da cidade.',
-      status: 'Em Andamento',
-      usuario_id: 1,
-      created_at: '2024-09-20T09:30:00Z',
-      updated_at: '2024-09-22T16:45:00Z',
-      satisfacao_do_usuario: null
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
     }
-  ];
+  };
 
   const handleSugestaoPress = (sugestao: Ocorrencia) => {
     router.push({
@@ -153,11 +99,20 @@ export default function ListaSugestoesScreen() {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
-    // TODO: Implementar exclusão na API
-    console.log('Excluir sugestão:', ocorrenciaToDelete?.id);
-    setShowDeleteModal(false);
-    setOcorrenciaToDelete(null);
+  const handleConfirmDelete = async () => {
+    if (!ocorrenciaToDelete) return;
+    
+    try {
+      await deleteOcorrenciaMutation.mutateAsync(ocorrenciaToDelete.id);
+      toast.success('Sugestão excluída com sucesso!');
+      setShowDeleteModal(false);
+      setOcorrenciaToDelete(null);
+    } catch (error: any) {
+      console.error('Erro ao excluir sugestão:', error);
+      toast.error('Erro ao excluir sugestão', {
+        description: error?.response?.data?.erro || 'Tente novamente mais tarde.',
+      });
+    }
   };
 
   const handleCancelDelete = () => {
@@ -204,17 +159,42 @@ export default function ListaSugestoesScreen() {
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#3B82F6']}
+            tintColor="#3B82F6"
+          />
+        }
       >
-        <Animated.View 
-          style={[
-            styles.listContainer,
-            { 
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          {sugestoes.map((sugestao) => {
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.loadingText}>Carregando sugestões...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+            <Text style={styles.errorTitle}>Erro ao carregar</Text>
+            <Text style={styles.errorSubtitle}>
+              {error?.message || 'Não foi possível carregar suas sugestões'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Text style={styles.retryButtonText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Animated.View 
+            style={[
+              styles.listContainer,
+              { 
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            {sugestoes.map((sugestao) => {
             const statusInfo = statusConfig[sugestao.status] || statusConfig['Em Aberto'];
             
             return (
@@ -225,7 +205,7 @@ export default function ListaSugestoesScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.cardHeader}>
-                  <View style={[styles.iconCircle, { backgroundColor: '#3B82F615' }]}>
+                  <View style={[styles.iconCircle]}>
                     <Ionicons name="bulb" size={28} color="#3B82F6" />
                   </View>
                   
@@ -299,10 +279,11 @@ export default function ListaSugestoesScreen() {
               </TouchableOpacity>
             );
           })}
-        </Animated.View>
+          </Animated.View>
+        )}
 
         {/* Empty State */}
-        {sugestoes.length === 0 && (
+        {!isLoading && !error && sugestoes.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="bulb-outline" size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>Nenhuma sugestão ainda</Text>
@@ -350,20 +331,26 @@ export default function ListaSugestoesScreen() {
             )}
 
             <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.modalCancelButton}
-                onPress={handleCancelDelete}
-              >
-                <Text style={styles.modalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.modalConfirmButton}
-                onPress={handleConfirmDelete}
-              >
-                <Ionicons name="trash" size={20} color="#FFFFFF" />
-                <Text style={styles.modalConfirmText}>Excluir</Text>
-              </TouchableOpacity>
+              {deleteOcorrenciaMutation.isPending ? (
+                <ActivityIndicator style={{ alignItems: 'center', justifyContent: 'center', marginHorizontal: 0 }} size="large" color="#3B82F6" />
+              ) : (
+                <>
+                  <TouchableOpacity 
+                    style={styles.modalCancelButton}
+                    onPress={handleCancelDelete}
+                  >
+                    <Text style={styles.modalCancelText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.modalConfirmButton}
+                    onPress={handleConfirmDelete}
+                  >
+                    <Ionicons name="trash" size={20} color="#FFFFFF" />
+                    <Text style={styles.modalConfirmText}>Excluir</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -569,6 +556,50 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_600SemiBold',
     color: '#FFFFFF',
   },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_500Medium',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#FFFFFF',
+  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -652,6 +683,8 @@ const styles = StyleSheet.create({
   },
   modalActions: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
   },
   modalCancelButton: {

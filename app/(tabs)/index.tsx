@@ -140,6 +140,35 @@ export default function HomeScreen() {
 
         <Animated.View 
           style={[
+            styles.manifestationsSection,
+            { 
+              opacity: fadeAnim.current,
+              transform: [{ translateY: slideAnim.current }]
+            }
+          ]}
+        >
+          <TouchableOpacity 
+            style={styles.manifestationsCard}
+            onPress={() => router.push('/minhas-manifestacoes')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.manifestationsContent}>
+              <View style={styles.manifestationsIcon}>
+                <Ionicons name="list-outline" size={28} color="#FFFFFF" />
+              </View>
+              <View style={styles.manifestationsText}>
+                <Text style={styles.manifestationsTitle}>Minhas Manifestações</Text>
+                <Text style={styles.manifestationsSubtitle}>
+                  Acompanhe suas reclamações, sugestões, elogios e denúncias
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="#6B7280" />
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+
+        <Animated.View 
+          style={[
             styles.infoSection,
             { 
               opacity: fadeAnim.current,
@@ -231,7 +260,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   menuSection: {
+    marginBottom: 24,
+  },
+  manifestationsSection: {
     marginBottom: 32,
+  },
+  manifestationsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  manifestationsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  manifestationsIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  manifestationsText: {
+    flex: 1,
+  },
+  manifestationsTitle: {
+    fontSize: 18,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  manifestationsSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    color: '#6B7280',
+    lineHeight: 20,
   },
   menuGrid: {
     flexDirection: 'row',

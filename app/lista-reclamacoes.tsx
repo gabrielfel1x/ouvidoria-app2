@@ -1,11 +1,16 @@
+import { useAuth } from '@/context/auth-context';
+import { useDeleteReclamacao, useReclamacoesByUser } from '@/hooks/useReclamacoes';
+import { Reclamacao } from '@/types/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Image,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,26 +18,8 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
-interface Reclamacao {
-  id: number;
-  numero_protocolo: string;
-  descricao: string;
-  data: string;
-  endereco: string;
-  localizacao: string;
-  imagem: string;
-  status: string;
-  categoria_id: number;
-  usuario_id: number;
-  created_at: string;
-  updated_at: string;
-  categoria: {
-    id: number;
-    nome: string;
-  };
-  satisfacao_do_usuario?: string | null;
-}
 
 // Status config
 const statusConfig: Record<string, { label: string; color: string; icon: string; bg: string }> = {
@@ -64,10 +51,15 @@ const statusConfig: Record<string, { label: string; color: string; icon: string;
 
 export default function ListaReclamacoesScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [reclamacaoToDelete, setReclamacaoToDelete] = useState<Reclamacao | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { data: reclamacoes = [], isLoading, error, refetch } = useReclamacoesByUser(user?.id || 0);
+  const deleteReclamacaoMutation = useDeleteReclamacao();
 
   useEffect(() => {
     Animated.parallel([
@@ -84,104 +76,14 @@ export default function ListaReclamacoesScreen() {
     ]).start();
   }, []);
 
-  // Dados mockados
-  const reclamacoes: Reclamacao[] = [
-    {
-      id: 1,
-      numero_protocolo: '2024092800123',
-      descricao: 'Grande buraco na Rua das Flores, altura do número 123',
-      data: '2024-09-28',
-      endereco: 'Rua das Flores, 123',
-      localizacao: '-23.5505,-46.6333',
-      imagem: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400',
-      status: 'Em Andamento',
-      categoria_id: 1,
-      usuario_id: 1,
-      created_at: '2024-09-28T10:30:00Z',
-      updated_at: '2024-09-28T14:20:00Z',
-      categoria: {
-        id: 1,
-        nome: 'Vias Públicas'
-      },
-      satisfacao_do_usuario: null
-    },
-    {
-      id: 2,
-      numero_protocolo: '2024092500087',
-      descricao: 'Poste de luz queimado na Avenida Central, próximo ao mercado',
-      data: '2024-09-25',
-      endereco: 'Avenida Central, 456',
-      localizacao: '-23.5489,-46.6388',
-      imagem: 'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=400',
-      status: 'Resolvido',
-      categoria_id: 2,
-      usuario_id: 1,
-      created_at: '2024-09-25T08:15:00Z',
-      updated_at: '2024-09-26T16:45:00Z',
-      categoria: {
-        id: 2,
-        nome: 'Iluminação Pública'
-      },
-      satisfacao_do_usuario: 'Satisfeito'
-    },
-    {
-      id: 3,
-      numero_protocolo: '2024092700201',
-      descricao: 'Lixo acumulado na praça principal há mais de uma semana',
-      data: '2024-09-27',
-      endereco: 'Praça da República',
-      localizacao: '-23.5431,-46.6422',
-      imagem: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=400',
-      status: 'Em Aberto',
-      categoria_id: 3,
-      usuario_id: 1,
-      created_at: '2024-09-27T14:22:00Z',
-      updated_at: '2024-09-27T14:22:00Z',
-      categoria: {
-        id: 3,
-        nome: 'Limpeza Urbana'
-      },
-      satisfacao_do_usuario: null
-    },
-    {
-      id: 4,
-      numero_protocolo: '2024092000045',
-      descricao: 'Vazamento de água na Rua dos Palmares, esquina com a Rua São José',
-      data: '2024-09-20',
-      endereco: 'Rua dos Palmares, esquina com Rua São José',
-      localizacao: '-23.5521,-46.6311',
-      imagem: '',
-      status: 'Resolvido',
-      categoria_id: 4,
-      usuario_id: 1,
-      created_at: '2024-09-20T07:30:00Z',
-      updated_at: '2024-09-22T18:00:00Z',
-      categoria: {
-        id: 4,
-        nome: 'Abastecimento de Água'
-      },
-      satisfacao_do_usuario: 'Muito satisfeito'
-    },
-    {
-      id: 5,
-      numero_protocolo: '2024091500312',
-      descricao: 'Veículos estacionados em fila dupla bloqueando a via durante horário de pico',
-      data: '2024-09-15',
-      endereco: 'Rua do Comércio, 789',
-      localizacao: '-23.5558,-46.6396',
-      imagem: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=400',
-      status: 'Cancelado',
-      categoria_id: 5,
-      usuario_id: 1,
-      created_at: '2024-09-15T11:45:00Z',
-      updated_at: '2024-09-16T09:30:00Z',
-      categoria: {
-        id: 5,
-        nome: 'Trânsito'
-      },
-      satisfacao_do_usuario: null
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
     }
-  ];
+  };
 
   const handleReclamacaoPress = (reclamacao: Reclamacao) => {
     router.push({
@@ -199,11 +101,20 @@ export default function ListaReclamacoesScreen() {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
-    // TODO: Implementar exclusão na API
-    console.log('Excluir reclamação:', reclamacaoToDelete?.id);
-    setShowDeleteModal(false);
-    setReclamacaoToDelete(null);
+  const handleConfirmDelete = async () => {
+    if (!reclamacaoToDelete) return;
+    
+    try {
+      await deleteReclamacaoMutation.mutateAsync(reclamacaoToDelete.id);
+      toast.success('Reclamação excluída com sucesso!');
+      setShowDeleteModal(false);
+      setReclamacaoToDelete(null);
+    } catch (error: any) {
+      console.error('Erro ao excluir reclamação:', error);
+      toast.error('Erro ao excluir reclamação', {
+        description: error?.response?.data?.erro || 'Tente novamente mais tarde.',
+      });
+    }
   };
 
   const handleCancelDelete = () => {
@@ -250,17 +161,42 @@ export default function ListaReclamacoesScreen() {
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#3B82F6']}
+            tintColor="#3B82F6"
+          />
+        }
       >
-        <Animated.View 
-          style={[
-            styles.listContainer,
-            { 
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          {reclamacoes.map((reclamacao, index) => {
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.loadingText}>Carregando reclamações...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+            <Text style={styles.errorTitle}>Erro ao carregar</Text>
+            <Text style={styles.errorSubtitle}>
+              {error?.message || 'Não foi possível carregar suas reclamações'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Text style={styles.retryButtonText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Animated.View 
+            style={[
+              styles.listContainer,
+              { 
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            {reclamacoes.map((reclamacao, index) => {
             const statusInfo = statusConfig[reclamacao.status] || statusConfig['Em Aberto'];
             
             return (
@@ -287,7 +223,7 @@ export default function ListaReclamacoesScreen() {
                     <View style={styles.headerTags}>
                       <View style={styles.categoriaTag}>
                         <Ionicons name="pricetag" size={12} color="#6B7280" />
-                        <Text style={styles.categoriaText}>{reclamacao.categoria.nome}</Text>
+                        <Text style={styles.categoriaText}>{reclamacao.categoria?.nome || 'Sem categoria'}</Text>
                       </View>
                       <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
                         <Ionicons name={statusInfo.icon as any} size={12} color={statusInfo.color} />
@@ -352,10 +288,11 @@ export default function ListaReclamacoesScreen() {
               </TouchableOpacity>
             );
           })}
-        </Animated.View>
+          </Animated.View>
+        )}
 
         {/* Empty State (caso não tenha reclamações) */}
-        {reclamacoes.length === 0 && (
+        {!isLoading && !error && reclamacoes.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="document-outline" size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>Nenhuma reclamação ainda</Text>
@@ -366,7 +303,6 @@ export default function ListaReclamacoesScreen() {
         )}
       </ScrollView>
 
-      {/* Modal de Confirmação de Exclusão */}
       <Modal
         visible={showDeleteModal}
         transparent={true}
@@ -624,6 +560,50 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 13,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#FFFFFF',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_500Medium',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 14,
     fontFamily: 'Outfit_600SemiBold',
     color: '#FFFFFF',
   },

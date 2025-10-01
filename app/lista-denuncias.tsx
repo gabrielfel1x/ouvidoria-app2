@@ -1,32 +1,24 @@
+import { useAuth } from '@/context/auth-context';
+import { useDeleteOcorrencia, useOcorrenciasByUser } from '@/hooks/useOcorrencias';
+import { Ocorrencia, TipoOcorrencia } from '@/types/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Animated,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
-interface Ocorrencia {
-  id: number;
-  numero_protocolo: string;
-  tipo: string;
-  setor: string;
-  data: string;
-  assunto: string;
-  detalhes: string;
-  status: string;
-  usuario_id: number;
-  created_at: string;
-  updated_at: string;
-  satisfacao_do_usuario?: string | null;
-}
 
 // Status config
 const statusConfig: Record<string, { label: string; color: string; icon: string; bg: string }> = {
@@ -58,10 +50,15 @@ const statusConfig: Record<string, { label: string; color: string; icon: string;
 
 export default function ListaDenunciasScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [ocorrenciaToDelete, setOcorrenciaToDelete] = useState<Ocorrencia | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { data: denuncias = [], isLoading, error, refetch } = useOcorrenciasByUser(user?.id || 0, TipoOcorrencia.DENUNCIA);
+  const deleteOcorrenciaMutation = useDeleteOcorrencia();
 
   useEffect(() => {
     Animated.parallel([
@@ -78,51 +75,14 @@ export default function ListaDenunciasScreen() {
     ]).start();
   }, []);
 
-  // Dados mockados
-  const denuncias: Ocorrencia[] = [
-    {
-      id: 1,
-      numero_protocolo: '2024092800678',
-      tipo: 'Denúncia',
-      setor: 'Corrupção',
-      data: '2024-09-28',
-      assunto: 'Irregularidade em licitação',
-      detalhes: 'Denúncio possível irregularidade no processo licitatório para reforma da praça municipal.',
-      status: 'Em Andamento',
-      usuario_id: 1,
-      created_at: '2024-09-28T13:45:00Z',
-      updated_at: '2024-09-29T10:20:00Z',
-      satisfacao_do_usuario: null
-    },
-    {
-      id: 2,
-      numero_protocolo: '2024092500456',
-      tipo: 'Denúncia',
-      setor: 'Má Conduta',
-      data: '2024-09-25',
-      assunto: 'Atendimento inadequado',
-      detalhes: 'Servidor público tratou cidadão com desrespeito na Secretaria de Fazenda durante atendimento.',
-      status: 'Resolvido',
-      usuario_id: 1,
-      created_at: '2024-09-25T16:30:00Z',
-      updated_at: '2024-09-28T14:15:00Z',
-      satisfacao_do_usuario: 'Satisfeito'
-    },
-    {
-      id: 3,
-      numero_protocolo: '2024092200234',
-      tipo: 'Denúncia',
-      setor: 'Patrimônio Público',
-      data: '2024-09-22',
-      assunto: 'Vandalismo em bem público',
-      detalhes: 'Relato de depredação frequente do mobiliário urbano na Praça dos Trabalhadores.',
-      status: 'Em Aberto',
-      usuario_id: 1,
-      created_at: '2024-09-22T11:15:00Z',
-      updated_at: '2024-09-22T11:15:00Z',
-      satisfacao_do_usuario: null
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
     }
-  ];
+  };
 
   const handleDenunciaPress = (denuncia: Ocorrencia) => {
     router.push({
@@ -139,11 +99,20 @@ export default function ListaDenunciasScreen() {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
-    // TODO: Implementar exclusão na API
-    console.log('Excluir denúncia:', ocorrenciaToDelete?.id);
-    setShowDeleteModal(false);
-    setOcorrenciaToDelete(null);
+  const handleConfirmDelete = async () => {
+    if (!ocorrenciaToDelete) return;
+    
+    try {
+      await deleteOcorrenciaMutation.mutateAsync(ocorrenciaToDelete.id);
+      toast.success('Denúncia excluída com sucesso!');
+      setShowDeleteModal(false);
+      setOcorrenciaToDelete(null);
+    } catch (error: any) {
+      console.error('Erro ao excluir denúncia:', error);
+      toast.error('Erro ao excluir denúncia', {
+        description: error?.response?.data?.erro || 'Tente novamente mais tarde.',
+      });
+    }
   };
 
   const handleCancelDelete = () => {
@@ -190,25 +159,51 @@ export default function ListaDenunciasScreen() {
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#F59E0B']}
+            tintColor="#F59E0B"
+          />
+        }
       >
-        {/* Aviso de Sigilo */}
-        <View style={styles.warningCard}>
-          <Ionicons name="lock-closed" size={20} color="#92400E" />
-          <Text style={styles.warningText}>
-            Suas denúncias são tratadas com <Text style={styles.warningBold}>total sigilo</Text> e confidencialidade.
-          </Text>
-        </View>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#F59E0B" />
+            <Text style={styles.loadingText}>Carregando denúncias...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+            <Text style={styles.errorTitle}>Erro ao carregar</Text>
+            <Text style={styles.errorSubtitle}>
+              {error?.message || 'Não foi possível carregar suas denúncias'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Text style={styles.retryButtonText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* Aviso de Sigilo */}
+            <View style={styles.warningCard}>
+              <Ionicons name="lock-closed" size={20} color="#92400E" />
+              <Text style={styles.warningText}>
+                Suas denúncias são tratadas com <Text style={styles.warningBold}>total sigilo</Text> e confidencialidade.
+              </Text>
+            </View>
 
-        <Animated.View 
-          style={[
-            styles.listContainer,
-            { 
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          {denuncias.map((denuncia) => {
+            <Animated.View 
+              style={[
+                styles.listContainer,
+                { 
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }]
+                }
+              ]}
+            >
+              {denuncias.map((denuncia) => {
             const statusInfo = statusConfig[denuncia.status] || statusConfig['Em Aberto'];
             
             return (
@@ -219,7 +214,7 @@ export default function ListaDenunciasScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.cardHeader}>
-                  <View style={[styles.iconCircle, { backgroundColor: '#F59E0B15' }]}>
+                  <View style={[styles.iconCircle]}>
                     <Ionicons name="shield-checkmark" size={28} color="#F59E0B" />
                   </View>
                   
@@ -293,10 +288,12 @@ export default function ListaDenunciasScreen() {
               </TouchableOpacity>
             );
           })}
-        </Animated.View>
+            </Animated.View>
+          </>
+        )}
 
         {/* Empty State */}
-        {denuncias.length === 0 && (
+        {!isLoading && !error && denuncias.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="shield-outline" size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>Nenhuma denúncia ainda</Text>
@@ -344,20 +341,26 @@ export default function ListaDenunciasScreen() {
             )}
 
             <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.modalCancelButton}
-                onPress={handleCancelDelete}
-              >
-                <Text style={styles.modalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.modalConfirmButton}
-                onPress={handleConfirmDelete}
-              >
-                <Ionicons name="trash" size={20} color="#FFFFFF" />
-                <Text style={styles.modalConfirmText}>Excluir</Text>
-              </TouchableOpacity>
+              {deleteOcorrenciaMutation.isPending ? (
+                <ActivityIndicator style={{ alignItems: 'center', justifyContent: 'center', marginHorizontal: 0 }} size="large" color="#F59E0B" />
+              ) : (
+                <>
+                  <TouchableOpacity 
+                    style={styles.modalCancelButton}
+                    onPress={handleCancelDelete}
+                  >
+                    <Text style={styles.modalCancelText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.modalConfirmButton}
+                    onPress={handleConfirmDelete}
+                  >
+                    <Ionicons name="trash" size={20} color="#FFFFFF" />
+                    <Text style={styles.modalConfirmText}>Excluir</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -582,6 +585,50 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_600SemiBold',
     color: '#FFFFFF',
   },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_500Medium',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#F59E0B',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#FFFFFF',
+  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -665,6 +712,8 @@ const styles = StyleSheet.create({
   },
   modalActions: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
   },
   modalCancelButton: {

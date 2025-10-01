@@ -1,15 +1,17 @@
+import { useReclamacao } from '@/hooks/useReclamacoes';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef } from 'react';
 import {
-    Animated,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Animated,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,9 +47,12 @@ const statusConfig: Record<string, { label: string; color: string; icon: string;
 export default function DetalhesReclamacaoScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const { id } = params;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const mapRef = useRef<MapView>(null);
+
+  const { data: reclamacao, isLoading, error } = useReclamacao(Number(id));
 
   useEffect(() => {
     Animated.parallel([
@@ -64,32 +69,36 @@ export default function DetalhesReclamacaoScreen() {
     ]).start();
   }, []);
 
-  // Dados mockados - em produção viriam da API
-  const reclamacao = {
-    id: 1,
-    numero_protocolo: '2024092800123',
-    descricao: 'Grande buraco na Rua das Flores, altura do número 123. O buraco tem aproximadamente 50cm de diâmetro e 30cm de profundidade, causando risco para veículos e pedestres.',
-    data: '2024-09-28',
-    endereco: 'Rua das Flores, 123',
-    localizacao: '-23.5505,-46.6333',
-    imagem: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800',
-    status: 'Em Andamento',
-    categoria_id: 1,
-    usuario_id: 1,
-    created_at: '2024-09-28T10:30:00Z',
-    updated_at: '2024-09-28T14:20:00Z',
-    categoria: {
-      id: 1,
-      nome: 'Vias Públicas'
-    },
-    satisfacao_do_usuario: null
-  };
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + 20, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#EF4444" />
+        <Text style={styles.loadingText}>Carregando reclamação...</Text>
+      </View>
+    );
+  }
+
+  if (error || !reclamacao) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top + 20, justifyContent: 'center', alignItems: 'center' }]}>
+        <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+        <Text style={styles.errorTitle}>Erro ao carregar</Text>
+        <Text style={styles.errorSubtitle}>
+          {error?.message || 'Não foi possível carregar os detalhes da reclamação'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <Text style={styles.retryButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const statusInfo = statusConfig[reclamacao.status] || statusConfig['Em Aberto'];
   
-  // Parse da localização
-  const [latitude, longitude] = reclamacao.localizacao.split(',').map(coord => parseFloat(coord.trim()));
-  const hasValidLocation = !isNaN(latitude) && !isNaN(longitude);
+  const urlImagem = typeof reclamacao.imagem === 'string' ? reclamacao.imagem : (reclamacao.imagem as any)?.url;
+  
+  const [latitude, longitude] = reclamacao.localizacao ? reclamacao.localizacao.split(',').map(coord => parseFloat(coord.trim())) : [0, 0];
+  const hasValidLocation = !isNaN(latitude) && !isNaN(longitude) && latitude !== 0 && longitude !== 0;
 
   const formatarData = (data: string) => {
     const date = new Date(data);
@@ -164,26 +173,25 @@ export default function DetalhesReclamacaoScreen() {
             </View>
           </View>
 
-          {/* Foto da Reclamação */}
-          {reclamacao.imagem && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Foto do Problema</Text>
-              <View style={styles.imageContainer}>
-                <Image 
-                  source={{ uri: reclamacao.imagem }}
-                  style={styles.reclamacaoImage}
-                  resizeMode="cover"
-                />
+            {reclamacao.imagem && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Foto do Problema</Text>
+                <View style={styles.imageContainer}>
+                  <Image 
+                    source={{ uri: urlImagem }}
+                    style={styles.reclamacaoImage}
+                    resizeMode="cover"
+                  />
+                </View>
               </View>
-            </View>
-          )}
+            )}
 
           {/* Categoria */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Categoria</Text>
             <View style={styles.infoCard}>
               <Ionicons name="pricetag" size={20} color="#EF4444" />
-              <Text style={styles.infoText}>{reclamacao.categoria.nome}</Text>
+              <Text style={styles.infoText}>{reclamacao.categoria?.nome || 'Não informado'}</Text>
             </View>
           </View>
 
@@ -192,7 +200,7 @@ export default function DetalhesReclamacaoScreen() {
             <Text style={styles.sectionTitle}>Localização</Text>
             <View style={styles.infoCard}>
               <Ionicons name="location" size={20} color="#EF4444" />
-              <Text style={styles.infoText}>{reclamacao.endereco}</Text>
+              <Text style={styles.infoText}>{reclamacao.endereco || 'Não informado'}</Text>
             </View>
             
             {/* Preview do Mapa */}
@@ -224,7 +232,7 @@ export default function DetalhesReclamacaoScreen() {
                         longitude,
                       }}
                       title="Local do Problema"
-                      description={reclamacao.endereco}
+                      description={reclamacao.endereco || 'Local não informado'}
                     >
                       <View style={styles.customMarker}>
                         <Ionicons name="alert-circle" size={32} color="#EF4444" />
@@ -247,7 +255,7 @@ export default function DetalhesReclamacaoScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Descrição do Problema</Text>
             <View style={styles.descriptionCard}>
-              <Text style={styles.descriptionText}>{reclamacao.descricao}</Text>
+              <Text style={styles.descriptionText}>{reclamacao.descricao || 'Descrição não informada'}</Text>
             </View>
           </View>
 
@@ -434,6 +442,22 @@ const styles = StyleSheet.create({
   reclamacaoImage: {
     width: '100%',
     height: 300,
+  },
+  imagePlaceholder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  imagePlaceholderText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_500Medium',
+    color: '#9CA3AF',
   },
   infoCard: {
     flexDirection: 'row',
@@ -623,6 +647,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Outfit_600SemiBold',
     color: '#6366F1',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_500Medium',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#FFFFFF',
   },
 });
 

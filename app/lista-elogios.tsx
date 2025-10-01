@@ -1,32 +1,24 @@
+import { useAuth } from '@/context/auth-context';
+import { useDeleteOcorrencia, useOcorrenciasByUser } from '@/hooks/useOcorrencias';
+import { Ocorrencia, TipoOcorrencia } from '@/types/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Animated,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
-interface Ocorrencia {
-  id: number;
-  numero_protocolo: string;
-  tipo: string;
-  setor: string;
-  data: string;
-  assunto: string;
-  detalhes: string;
-  status: string;
-  usuario_id: number;
-  created_at: string;
-  updated_at: string;
-  satisfacao_do_usuario?: string | null;
-}
 
 // Status config
 const statusConfig: Record<string, { label: string; color: string; icon: string; bg: string }> = {
@@ -58,10 +50,15 @@ const statusConfig: Record<string, { label: string; color: string; icon: string;
 
 export default function ListaElogiosScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [ocorrenciaToDelete, setOcorrenciaToDelete] = useState<Ocorrencia | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { data: elogios = [], isLoading, error, refetch } = useOcorrenciasByUser(user?.id || 0, TipoOcorrencia.ELOGIO);
+  const deleteOcorrenciaMutation = useDeleteOcorrencia();
 
   useEffect(() => {
     Animated.parallel([
@@ -78,51 +75,14 @@ export default function ListaElogiosScreen() {
     ]).start();
   }, []);
 
-  // Dados mockados
-  const elogios: Ocorrencia[] = [
-    {
-      id: 1,
-      numero_protocolo: '2024092800456',
-      tipo: 'Elogio',
-      setor: 'Saúde',
-      data: '2024-09-28',
-      assunto: 'Excelente atendimento na UBS',
-      detalhes: 'Fui muito bem atendido pela equipe de enfermagem da UBS Central. Profissionais atenciosos e competentes.',
-      status: 'Em Aberto',
-      usuario_id: 1,
-      created_at: '2024-09-28T11:30:00Z',
-      updated_at: '2024-09-28T11:30:00Z',
-      satisfacao_do_usuario: null
-    },
-    {
-      id: 2,
-      numero_protocolo: '2024092600234',
-      tipo: 'Elogio',
-      setor: 'Educação',
-      data: '2024-09-26',
-      assunto: 'Professora exemplar',
-      detalhes: 'Gostaria de elogiar a professora Maria da Escola Municipal João Silva pelo excelente trabalho com as crianças.',
-      status: 'Resolvido',
-      usuario_id: 1,
-      created_at: '2024-09-26T14:20:00Z',
-      updated_at: '2024-09-27T10:15:00Z',
-      satisfacao_do_usuario: 'Satisfeito'
-    },
-    {
-      id: 3,
-      numero_protocolo: '2024092400189',
-      tipo: 'Elogio',
-      setor: 'Atendimento',
-      data: '2024-09-24',
-      assunto: 'Atendimento rápido e eficiente',
-      detalhes: 'Fui atendido rapidamente na Secretaria de Obras para resolver minha documentação. Parabéns pela eficiência!',
-      status: 'Resolvido',
-      usuario_id: 1,
-      created_at: '2024-09-24T09:45:00Z',
-      updated_at: '2024-09-24T16:30:00Z',
-      satisfacao_do_usuario: 'Muito satisfeito'
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
     }
-  ];
+  };
 
   const handleElogioPress = (elogio: Ocorrencia) => {
     router.push({
@@ -139,11 +99,20 @@ export default function ListaElogiosScreen() {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
-    // TODO: Implementar exclusão na API
-    console.log('Excluir elogio:', ocorrenciaToDelete?.id);
-    setShowDeleteModal(false);
-    setOcorrenciaToDelete(null);
+  const handleConfirmDelete = async () => {
+    if (!ocorrenciaToDelete) return;
+    
+    try {
+      await deleteOcorrenciaMutation.mutateAsync(ocorrenciaToDelete.id);
+      toast.success('Elogio excluído com sucesso!');
+      setShowDeleteModal(false);
+      setOcorrenciaToDelete(null);
+    } catch (error: any) {
+      console.error('Erro ao excluir elogio:', error);
+      toast.error('Erro ao excluir elogio', {
+        description: error?.response?.data?.erro || 'Tente novamente mais tarde.',
+      });
+    }
   };
 
   const handleCancelDelete = () => {
@@ -190,17 +159,42 @@ export default function ListaElogiosScreen() {
         style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#10B981']}
+            tintColor="#10B981"
+          />
+        }
       >
-        <Animated.View 
-          style={[
-            styles.listContainer,
-            { 
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          {elogios.map((elogio) => {
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#10B981" />
+            <Text style={styles.loadingText}>Carregando elogios...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+            <Text style={styles.errorTitle}>Erro ao carregar</Text>
+            <Text style={styles.errorSubtitle}>
+              {error?.message || 'Não foi possível carregar seus elogios'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Text style={styles.retryButtonText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Animated.View 
+            style={[
+              styles.listContainer,
+              { 
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            {elogios.map((elogio) => {
             const statusInfo = statusConfig[elogio.status] || statusConfig['Em Aberto'];
             
             return (
@@ -211,7 +205,7 @@ export default function ListaElogiosScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.cardHeader}>
-                  <View style={[styles.iconCircle, { backgroundColor: '#10B98115' }]}>
+                  <View style={[styles.iconCircle]}>
                     <Ionicons name="heart" size={28} color="#10B981" />
                   </View>
                   
@@ -285,10 +279,11 @@ export default function ListaElogiosScreen() {
               </TouchableOpacity>
             );
           })}
-        </Animated.View>
+          </Animated.View>
+        )}
 
         {/* Empty State */}
-        {elogios.length === 0 && (
+        {!isLoading && !error && elogios.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="heart-outline" size={64} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>Nenhum elogio ainda</Text>
@@ -336,20 +331,26 @@ export default function ListaElogiosScreen() {
             )}
 
             <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={styles.modalCancelButton}
-                onPress={handleCancelDelete}
-              >
-                <Text style={styles.modalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.modalConfirmButton}
-                onPress={handleConfirmDelete}
-              >
-                <Ionicons name="trash" size={20} color="#FFFFFF" />
-                <Text style={styles.modalConfirmText}>Excluir</Text>
-              </TouchableOpacity>
+              {deleteOcorrenciaMutation.isPending ? (
+                <ActivityIndicator style={{ alignItems: 'center', justifyContent: 'center', marginHorizontal: 0 }} size="large" color="#10B981" />
+              ) : (
+                <>
+                  <TouchableOpacity 
+                    style={styles.modalCancelButton}
+                    onPress={handleCancelDelete}
+                  >
+                    <Text style={styles.modalCancelText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.modalConfirmButton}
+                    onPress={handleConfirmDelete}
+                  >
+                    <Ionicons name="trash" size={20} color="#FFFFFF" />
+                    <Text style={styles.modalConfirmText}>Excluir</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -555,6 +556,50 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_600SemiBold',
     color: '#FFFFFF',
   },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_500Medium',
+    color: '#6B7280',
+    marginTop: 16,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Outfit_400Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#10B981',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#FFFFFF',
+  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -638,6 +683,8 @@ const styles = StyleSheet.create({
   },
   modalActions: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
   },
   modalCancelButton: {

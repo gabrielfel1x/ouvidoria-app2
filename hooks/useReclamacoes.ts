@@ -1,4 +1,4 @@
-import { createReclamacao, getReclamacao, getReclamacoesByUser } from '@/services/reclamacoes';
+import { createReclamacao, deleteReclamacao, getReclamacao, getReclamacoesByUser, updateReclamacao } from '@/services/reclamacoes';
 import { CreateReclamacaoRequest, Reclamacao } from '@/types/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -39,6 +39,35 @@ export function useReclamacao(id: number, enabled = true) {
     queryKey: ['reclamacoes', id],
     queryFn: () => getReclamacao(id),
     enabled: enabled && !!id,
+  });
+}
+
+export function useUpdateReclamacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Reclamacao, Error, { id: number; data: Partial<CreateReclamacaoRequest> }>({
+    mutationFn: ({ id, data }) => updateReclamacao(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['reclamacoes'] });
+      queryClient.invalidateQueries({ queryKey: ['reclamacoes', variables.id] });
+    },
+    onError: (error) => {
+      console.error('Erro ao atualizar reclamação:', error);
+    },
+  });
+}
+
+export function useDeleteReclamacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: deleteReclamacao,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reclamacoes'] });
+    },
+    onError: (error) => {
+      console.error('Erro ao deletar reclamação:', error);
+    },
   });
 }
 

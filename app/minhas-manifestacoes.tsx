@@ -1,8 +1,13 @@
+import { useAuth } from '@/context/auth-context';
+import { useOcorrenciasByUser } from '@/hooks/useOcorrencias';
+import { useReclamacoesByUser } from '@/hooks/useReclamacoes';
+import { TipoOcorrencia } from '@/types/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef } from 'react';
 import {
+    ActivityIndicator,
     Animated,
     ScrollView,
     StyleSheet,
@@ -23,8 +28,16 @@ interface TipoManifestacao {
 
 export default function MinhasManifestacoes() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+
+  const { data: reclamacoes = [], isLoading: loadingReclamacoes } = useReclamacoesByUser(user?.id || 0);
+  const { data: sugestoes = [], isLoading: loadingSugestoes } = useOcorrenciasByUser(user?.id || 0, TipoOcorrencia.SUGESTAO);
+  const { data: elogios = [], isLoading: loadingElogios } = useOcorrenciasByUser(user?.id || 0, TipoOcorrencia.ELOGIO);
+  const { data: denuncias = [], isLoading: loadingDenuncias } = useOcorrenciasByUser(user?.id || 0, TipoOcorrencia.DENUNCIA);
+
+  const isLoading = loadingReclamacoes || loadingSugestoes || loadingElogios || loadingDenuncias;
 
   useEffect(() => {
     Animated.parallel([
@@ -48,7 +61,7 @@ export default function MinhasManifestacoes() {
       icon: 'alert-circle',
       color: '#EF4444',
       description: 'Visualize suas reclamações registradas',
-      count: 0
+      count: reclamacoes.length
     },
     {
       id: 'sugestoes',
@@ -56,7 +69,7 @@ export default function MinhasManifestacoes() {
       icon: 'bulb',
       color: '#3B82F6',
       description: 'Acompanhe suas sugestões enviadas',
-      count: 0
+      count: sugestoes.length
     },
     {
       id: 'elogios',
@@ -64,7 +77,7 @@ export default function MinhasManifestacoes() {
       icon: 'heart',
       color: '#10B981',
       description: 'Veja os elogios que você enviou',
-      count: 0
+      count: elogios.length
     },
     {
       id: 'denuncias',
@@ -72,7 +85,7 @@ export default function MinhasManifestacoes() {
       icon: 'shield-checkmark',
       color: '#F59E0B',
       description: 'Consulte suas denúncias realizadas',
-      count: 0
+      count: denuncias.length
     }
   ];
 
@@ -129,16 +142,22 @@ export default function MinhasManifestacoes() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Animated.View 
-          style={[
-            styles.tiposContainer,
-            { 
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          {tipos.map((tipo) => (
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.loadingText}>Carregando manifestações...</Text>
+          </View>
+        ) : (
+          <Animated.View 
+            style={[
+              styles.tiposContainer,
+              { 
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            {tipos.map((tipo) => (
             <TouchableOpacity
               key={tipo.id}
               style={[
@@ -166,16 +185,19 @@ export default function MinhasManifestacoes() {
               </View>
               <Ionicons name="chevron-forward" size={24} color={tipo.color} />
             </TouchableOpacity>
-          ))}
-        </Animated.View>
+            ))}
+          </Animated.View>
+        )}
 
         {/* Card de Ajuda */}
-        <View style={styles.helpCard}>
-          <Ionicons name="help-circle" size={20} color="#6366F1" />
-          <Text style={styles.helpText}>
-            <Text style={styles.helpBold}>Dica:</Text> Clique em qualquer tipo de manifestação para ver o histórico completo e acompanhar o status de cada uma.
-          </Text>
-        </View>
+        {!isLoading && (
+          <View style={styles.helpCard}>
+            <Ionicons name="help-circle" size={20} color="#6366F1" />
+            <Text style={styles.helpText}>
+              <Text style={styles.helpBold}>Dica:</Text> Clique em qualquer tipo de manifestação para ver o histórico completo e acompanhar o status de cada uma.
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -349,6 +371,18 @@ const styles = StyleSheet.create({
   },
   helpBold: {
     fontFamily: 'Outfit_700Bold',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_500Medium',
+    color: '#6B7280',
+    marginTop: 16,
   },
 });
 
