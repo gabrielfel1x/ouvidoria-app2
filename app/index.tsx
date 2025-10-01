@@ -39,11 +39,8 @@ export default function LoginScreen() {
         senha: password,
       });
 
-      // Sucesso - o redirecionamento acontece automaticamente pelo useEffect
-      toast.success('Login realizado com sucesso!');
       
     } catch (error: any) {
-      // Tratamento de erros
       const errorMessage = error?.response?.data?.erro || error?.message || 'Erro ao fazer login. Tente novamente.';
       toast.error(errorMessage);
     } finally {

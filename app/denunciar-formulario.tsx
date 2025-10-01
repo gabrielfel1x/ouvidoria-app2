@@ -1,19 +1,22 @@
 import Colors from '@/constants/Colors';
+import { useAuth } from '@/context/auth-context';
+import { useCreateOcorrencia } from '@/hooks/useOcorrencias';
+import { TipoOcorrencia } from '@/types/types';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Animated,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -22,10 +25,11 @@ export default function DenunciarFormularioScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const primary = Colors.light.primary;
+  const { user } = useAuth();
+  const createOcorrenciaMutation = useCreateOcorrencia();
   
   const [assunto, setAssunto] = useState('');
   const [detalhes, setDetalhes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -64,18 +68,42 @@ export default function DenunciarFormularioScreen() {
       return;
     }
 
-    setIsSubmitting(true);
-    
-    // TODO: Implementar envio na API
-    setTimeout(() => {
-      setIsSubmitting(false);
+    if (!user?.id) {
+      toast.error('Erro', {
+        description: 'Usuário não autenticado.',
+      });
+      return;
+    }
+
+    try {
+      const dataAtual = new Date().toISOString().split('T')[0];
+
+      const ocorrenciaData = {
+        usuario_id: user.id,
+        tipo: TipoOcorrencia.DENUNCIA,
+        setor: tipoTitle,
+        data: dataAtual,
+        assunto: assunto.trim(),
+        detalhes: detalhes.trim(),
+      };
+
+      await createOcorrenciaMutation.mutateAsync(ocorrenciaData);
+
       toast.success('Denúncia registrada!', {
         description: 'Sua denúncia foi recebida e será analisada com sigilo.',
       });
       
-      router.back();
-      router.back();
-    }, 2000);
+      setTimeout(() => {
+        router.back();
+        router.back();
+      }, 1500);
+
+    } catch (error: any) {
+      console.error('Erro ao enviar denúncia:', error);
+      toast.error('Erro ao enviar denúncia', {
+        description: error?.response?.data?.erro || 'Tente novamente mais tarde.',
+      });
+    }
   };
 
   return (
@@ -195,12 +223,12 @@ export default function DenunciarFormularioScreen() {
               style={[
                 styles.submitButton, 
                 { backgroundColor: primary },
-                isSubmitting && styles.submitButtonDisabled
+                createOcorrenciaMutation.isPending && styles.submitButtonDisabled
               ]}
               onPress={handleSubmit}
-              disabled={isSubmitting}
+              disabled={createOcorrenciaMutation.isPending}
             >
-              {isSubmitting ? (
+              {createOcorrenciaMutation.isPending ? (
                 <>
                   <ActivityIndicator size="small" color="#FFFFFF" />
                   <Text style={styles.submitButtonText}>Enviando...</Text>

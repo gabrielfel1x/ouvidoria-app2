@@ -36,10 +36,27 @@ export interface User {
   ativo: boolean;
 }
 
+export enum TipoOcorrencia {
+  SUGESTAO = 'Sugestão',
+  ELOGIO = 'Elogio', 
+  DENUNCIA = 'Denúncia'
+}
+
 export interface Categoria {
   id: number;
   nome: string;
   setor: string;
+}
+
+export interface CreateOcorrenciaRequest {
+  usuario_id: number;
+  tipo: string;
+  setor: string;
+  data: string;
+  assunto: string;
+  detalhes: string;
+  status?: string;
+  satisfacao_do_usuario?: string | null;
 }
 
 export interface CreateReclamacaoRequest {
@@ -52,6 +69,25 @@ export interface CreateReclamacaoRequest {
   imagem?: string;             // ❌ Opcional (base64 completo: data:image/jpeg;base64,...)
   status?: string;             // ❌ Opcional (padrão: "Em Aberto")
   satisfacao_do_usuario?: string | null; // ❌ Opcional
+}
+
+export interface Ocorrencia {
+  id: number;
+  numero_protocolo: string;
+  tipo: string;
+  setor: string;
+  data: string;
+  assunto: string;
+  detalhes: string;
+  status: string;
+  usuario_id: number;
+  satisfacao_do_usuario?: string | null;
+  created_at: string;
+  updated_at: string;
+  usuario?: {
+    id: number;
+    nome: string;
+  };
 }
 
 export interface Reclamacao {
