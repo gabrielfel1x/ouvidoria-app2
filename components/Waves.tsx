@@ -9,10 +9,10 @@ type WavesProps = {
 
 export default function Waves({ height = 220 }: WavesProps) {
   const primary = Colors.light.primary;
-  const layer1 = primary;
-  const layer2 = '#f37a74';
-  const layer3 = '#f59a96';
-  const layer4 = '#f8b9b6';
+  const layer1 = '#2563eb';
+  const layer2 = '#4f82f0';
+  const layer3 = '#7ca3f2';
+  const layer4 = '#a9c4f4';
 
   return (
     <View style={[styles.container, { height }]}> 

@@ -91,6 +91,15 @@ export default function LoginScreen() {
                 <Text style={[styles.footerText, { color: primary, fontFamily: 'Outfit_600SemiBold' }]}> Cadastre-se</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Botão temporário de desenvolvimento */}
+            <TouchableOpacity 
+              onPress={() => router.push('/(tabs)')} 
+              style={styles.devButton}
+            >
+              <Ionicons name="code-slash" size={16} color="#FFFFFF" style={styles.devButtonIcon} />
+              <Text style={styles.devButtonText}>Acesso Dev - Home</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -203,6 +212,24 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  devButton: {
+    height: 48,
+    backgroundColor: '#6B7280',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  devButtonIcon: {
+    marginRight: 4,
+  },
+  devButtonText: {
+    fontSize: 14,
+    fontFamily: 'Outfit_600SemiBold',
+    color: '#ffffff',
   },
 });
 

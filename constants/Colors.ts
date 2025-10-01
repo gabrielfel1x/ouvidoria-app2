@@ -1,10 +1,7 @@
-// Core palette
-const primary = '#f0574f';
+const primary = '#4f82f0';
 const white = '#ffffff';
 const black = '#000000';
-const gray = '#9ca3af'; // neutral gray
-
-// Derivatives
+const gray = '#9ca3af';
 const tintColorLight = primary;
 const tintColorDark = primary;
 
