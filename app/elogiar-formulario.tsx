@@ -25,7 +25,6 @@ export default function ElogiarFormularioScreen() {
   
   const [assunto, setAssunto] = useState('');
   const [detalhes, setDetalhes] = useState('');
-  const [nomeServidor, setNomeServidor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -150,42 +149,21 @@ export default function ElogiarFormularioScreen() {
               />
             </View>
 
-            {/* Campo Opcional - Nome do Servidor */}
-            <View style={styles.section}>
-              <View style={styles.labelRow}>
-                <Text style={styles.sectionTitle}>Nome do Servidor ou Equipe</Text>
-                <View style={styles.optionalBadge}>
-                  <Text style={styles.optionalText}>Opcional</Text>
-                </View>
-              </View>
-              <Text style={styles.sectionSubtitle}>
-                Se souber, informe o nome da pessoa ou equipe que deseja elogiar
-              </Text>
-              
-              <TextInput
-                style={styles.nomeInput}
-                placeholder="Ex: João Silva, Equipe de Limpeza..."
-                placeholderTextColor="#9CA3AF"
-                value={nomeServidor}
-                onChangeText={setNomeServidor}
-              />
-            </View>
-
             {/* Campo de Detalhes */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Descrição Detalhada</Text>
               <Text style={styles.sectionSubtitle}>
-                Conte-nos sobre sua experiência positiva. O que te impressionou?
+                Conte-nos sobre sua experiência positiva: o que aconteceu, quando, onde, quem te atendeu e por que você está elogiando.
               </Text>
               
               <TextInput
                 style={styles.detalhesInput}
-                placeholder="Descreva o que aconteceu, quando, onde e por que você está elogiando. Seu reconhecimento é importante para motivar os servidores públicos..."
+                placeholder="Descreva sua experiência positiva com detalhes. Se souber, mencione o nome do servidor ou equipe que deseja elogiar. Seu reconhecimento é importante!"
                 placeholderTextColor="#9CA3AF"
                 value={detalhes}
                 onChangeText={setDetalhes}
                 multiline
-                numberOfLines={10}
+                numberOfLines={12}
                 textAlignVertical="top"
               />
             </View>
@@ -307,26 +285,10 @@ const styles = StyleSheet.create({
   section: {
     gap: 12,
   },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   sectionTitle: {
     fontSize: 18,
     fontFamily: 'Outfit_600SemiBold',
     color: '#111827',
-  },
-  optionalBadge: {
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  optionalText: {
-    fontSize: 11,
-    fontFamily: 'Outfit_500Medium',
-    color: '#6B7280',
   },
   sectionSubtitle: {
     fontSize: 14,
@@ -343,19 +305,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_400Regular',
     color: '#111827',
     backgroundColor: '#FFFFFF',
-    minHeight: 60,
+    minHeight: 70,
     textAlignVertical: 'top',
-  },
-  nomeInput: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    fontFamily: 'Outfit_400Regular',
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
-    minHeight: 56,
   },
   detalhesInput: {
     borderWidth: 1,
@@ -366,7 +317,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_400Regular',
     color: '#111827',
     backgroundColor: '#FFFFFF',
-    height: 180,
+    height: 220,
     textAlignVertical: 'top',
   },
   infoBox: {

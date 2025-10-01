@@ -171,18 +171,15 @@ export default function ListaDenunciasScreen() {
             onPress={() => router.back()}
           >
             <Ionicons name="arrow-back" size={24} color="#111827" />
+            <Text style={styles.backButtonText}>Voltar</Text>
           </TouchableOpacity>
-          <View style={styles.titleContainer}>
-            <Text style={styles.headerTitle}>Minhas Denúncias</Text>
-          </View>
-          <View style={styles.headerSpacer} />
-        </View>
-        
-        <View style={styles.headerIcon}>
-          <Ionicons name="shield-checkmark" size={48} color="#F59E0B" />
         </View>
         
         <View style={styles.headerContent}>
+          <View style={styles.titleRow}>
+            <Ionicons name="shield-checkmark" size={28} color="#F59E0B" />
+            <Text style={styles.headerTitle}>Minhas Denúncias</Text>
+          </View>
           <Text style={styles.headerSubtitle}>
             {denuncias.length} {denuncias.length === 1 ? 'denúncia registrada' : 'denúncias registradas'}
           </Text>
@@ -268,8 +265,13 @@ export default function ListaDenunciasScreen() {
                       style={styles.editButton}
                       onPress={(e) => {
                         e.stopPropagation();
-                        // TODO: Implementar edição
-                        console.log('Editar denúncia:', denuncia.id);
+                        router.push({
+                          pathname: '/editar-ocorrencia',
+                          params: {
+                            id: denuncia.id,
+                            tipo: 'Denúncia'
+                          }
+                        });
                       }}
                     >
                       <Ionicons name="create-outline" size={18} color="#3B82F6" />
@@ -372,39 +374,41 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+    gap: 12,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     padding: 8,
   },
-  headerSpacer: {
-    width: 40,
-  },
-  titleContainer: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: 'Outfit_700Bold',
+  backButtonText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_500Medium',
     color: '#111827',
   },
-  headerIcon: {
-    alignItems: 'center',
-    marginVertical: 16,
-  },
   headerContent: {
+    gap: 8,
+  },
+  titleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontFamily: 'Outfit_700Bold',
+    color: '#F59E0B',
   },
   headerSubtitle: {
     fontSize: 15,
     fontFamily: 'Outfit_400Regular',
     color: '#6B7280',
-    textAlign: 'center',
     lineHeight: 20,
   },
   content: {
