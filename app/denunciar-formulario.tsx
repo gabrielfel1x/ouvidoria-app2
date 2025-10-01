@@ -1,3 +1,4 @@
+import SuccessAlert from '@/components/SuccessAlert';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/auth-context';
 import { useCreateOcorrencia } from '@/hooks/useOcorrencias';
@@ -7,16 +8,16 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Animated,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -30,6 +31,7 @@ export default function DenunciarFormularioScreen() {
   
   const [assunto, setAssunto] = useState('');
   const [detalhes, setDetalhes] = useState('');
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -89,14 +91,8 @@ export default function DenunciarFormularioScreen() {
 
       await createOcorrenciaMutation.mutateAsync(ocorrenciaData);
 
-      toast.success('Denúncia registrada!', {
-        description: 'Sua denúncia foi recebida e será analisada com sigilo.',
-      });
-      
-      setTimeout(() => {
-        router.back();
-        router.back();
-      }, 1500);
+      // Mostra o alerta de sucesso personalizado
+      setShowSuccessAlert(true);
 
     } catch (error: any) {
       console.error('Erro ao enviar denúncia:', error);
@@ -243,6 +239,22 @@ export default function DenunciarFormularioScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Alerta de Sucesso Personalizado */}
+      <SuccessAlert
+        visible={showSuccessAlert}
+        onClose={() => {
+          setShowSuccessAlert(false);
+          router.back();
+          router.back();
+        }}
+        title="Denúncia Registrada!"
+        message="Sua denúncia foi recebida e será analisada com total sigilo. Obrigado por contribuir com a transparência."
+        icon="shield-checkmark"
+        iconColor="#DC2626"
+        backgroundColor="#DC2626"
+        duration={3000}
+      />
     </View>
   );
 }

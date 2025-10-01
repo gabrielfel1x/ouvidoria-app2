@@ -2,7 +2,7 @@ import { storageAuthTokenGet } from '@/storage/storage-auth-token';
 import axios from 'axios';
 
 export const api = axios.create({
-  baseURL: 'https://b49acdae7fde.ngrok-free.app',
+  baseURL: 'https://a84dbf7069c4.ngrok-free.app',
   headers: {
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': true,

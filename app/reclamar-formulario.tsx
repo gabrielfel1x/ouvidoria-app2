@@ -1,3 +1,4 @@
+import SuccessAlert from '@/components/SuccessAlert';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/auth-context';
 import { useCreateReclamacao } from '@/hooks/useReclamacoes';
@@ -8,17 +9,17 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Animated,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,6 +40,7 @@ export default function ReclamarFormularioScreen() {
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -368,14 +370,8 @@ export default function ReclamarFormularioScreen() {
       
       await createReclamacaoMutation.mutateAsync(reclamacaoData);
 
-      toast.success('Reclamação enviada com sucesso!', {
-        description: 'Você receberá atualizações sobre o andamento.',
-      });
-
-      // Aguarda um pouco e volta para a tela anterior
-      setTimeout(() => {
-        router.back();
-      }, 1500);
+      // Mostra o alerta de sucesso personalizado
+      setShowSuccessAlert(true);
 
     } catch (error: any) {
       console.error('Erro ao enviar reclamação:', error);
@@ -633,6 +629,21 @@ export default function ReclamarFormularioScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Alerta de Sucesso Personalizado */}
+      <SuccessAlert
+        visible={showSuccessAlert}
+        onClose={() => {
+          setShowSuccessAlert(false);
+          router.back();
+        }}
+        title="Reclamação Enviada!"
+        message="Sua reclamação foi registrada com sucesso. Você receberá atualizações sobre o andamento."
+        icon="checkmark-circle"
+        iconColor="#10B981"
+        backgroundColor="#10B981"
+        duration={3000}
+      />
     </View>
   );
 }

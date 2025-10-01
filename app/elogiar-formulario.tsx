@@ -1,3 +1,4 @@
+import SuccessAlert from '@/components/SuccessAlert';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/auth-context';
 import { useCreateOcorrencia } from '@/hooks/useOcorrencias';
@@ -30,6 +31,7 @@ export default function ElogiarFormularioScreen() {
   
   const [assunto, setAssunto] = useState('');
   const [detalhes, setDetalhes] = useState('');
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -90,14 +92,8 @@ export default function ElogiarFormularioScreen() {
 
       await createOcorrenciaMutation.mutateAsync(ocorrenciaData);
 
-      toast.success('Elogio enviado!', {
-        description: 'Obrigado por reconhecer o bom trabalho!',
-      });
-      
-      setTimeout(() => {
-        router.back();
-        router.back();
-      }, 1500);
+      // Mostra o alerta de sucesso personalizado
+      setShowSuccessAlert(true);
 
     } catch (error: any) {
       console.error('Erro ao enviar elogio:', error);
@@ -232,6 +228,22 @@ export default function ElogiarFormularioScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Alerta de Sucesso Personalizado */}
+      <SuccessAlert
+        visible={showSuccessAlert}
+        onClose={() => {
+          setShowSuccessAlert(false);
+          router.back();
+          router.back();
+        }}
+        title="Elogio Enviado!"
+        message="Obrigado por reconhecer o bom trabalho! Seu elogio será compartilhado com a equipe."
+        icon="heart"
+        iconColor="#10B981"
+        backgroundColor="#10B981"
+        duration={3000}
+      />
     </View>
   );
 }

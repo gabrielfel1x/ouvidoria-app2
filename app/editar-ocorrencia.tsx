@@ -1,4 +1,5 @@
 import Colors from '@/constants/Colors';
+import { useOcorrencia, useUpdateOcorrencia } from '@/hooks/useOcorrencias';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -46,6 +47,7 @@ const tipoConfig: Record<string, { color: string; icon: string; titulo: string; 
 export default function EditarOcorrenciaScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const { id, tipo } = params;
   const primary = Colors.light.primary;
   
   const [assunto, setAssunto] = useState('');
@@ -55,38 +57,12 @@ export default function EditarOcorrenciaScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  const tipo = params.tipo as string || 'Elogio';
-  const tipoInfo = tipoConfig[tipo] || tipoConfig['Elogio'];
+  const { data: ocorrencia, isLoading } = useOcorrencia(Number(id));
+  const updateOcorrenciaMutation = useUpdateOcorrencia();
 
-  // Dados mockados - em produção viriam da API baseado no ID
-  const dadosMockados: Record<string, any> = {
-    'Elogio': {
-      id: 1,
-      numero_protocolo: '2024092800456',
-      tipo: 'Elogio',
-      setor: 'Saúde',
-      assunto: 'Excelente atendimento na UBS',
-      detalhes: 'Fui muito bem atendido pela equipe de enfermagem da UBS Central, especialmente pela Enfermeira Maria e Dr. João. Os profissionais foram atenciosos, competentes e demonstraram grande empatia durante todo o atendimento.'
-    },
-    'Sugestão': {
-      id: 1,
-      numero_protocolo: '2024092800567',
-      tipo: 'Sugestão',
-      setor: 'Infraestrutura',
-      assunto: 'Instalação de faixa de pedestres',
-      detalhes: 'Sugiro a instalação de uma faixa de pedestres na Rua das Acácias, próximo à Escola Municipal João Silva. O local tem grande movimentação de crianças durante os horários de entrada e saída das aulas, tornando a travessia perigosa.'
-    },
-    'Denúncia': {
-      id: 1,
-      numero_protocolo: '2024092800678',
-      tipo: 'Denúncia',
-      setor: 'Corrupção',
-      assunto: 'Irregularidade em licitação',
-      detalhes: 'Denuncio possível irregularidade no processo licitatório para reforma da Praça Municipal ocorrida em 15/09/2024 na Secretaria de Obras. Observei que o edital favorece uma empresa específica (XYZ Construções) com requisitos muito particulares. O prazo para apresentação de propostas foi extremamente curto, dificultando a participação de outros interessados.'
-    }
-  };
+  const tipoAtual = (tipo as string) || 'Elogio';
+  const tipoInfo = tipoConfig[tipoAtual] || tipoConfig['Elogio'];
 
-  const ocorrenciaOriginal = dadosMockados[tipo] || dadosMockados['Elogio'];
 
   useEffect(() => {
     Animated.parallel([
@@ -101,39 +77,49 @@ export default function EditarOcorrenciaScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Carregar dados da ocorrência
-    loadOcorrenciaData();
   }, []);
 
-  const loadOcorrenciaData = () => {
-    setAssunto(ocorrenciaOriginal.assunto);
-    setDetalhes(ocorrenciaOriginal.detalhes);
-  };
+  useEffect(() => {
+    if (!ocorrencia) return;
+    setAssunto(ocorrencia.assunto || '');
+    setDetalhes(ocorrencia.detalhes || '');
+  }, [ocorrencia]);
 
   const handleSubmit = async () => {
     if (!assunto.trim()) {
       toast.error('Campo obrigatório', {
-        description: `Por favor, informe o assunto ${tipo === 'Elogio' ? 'do elogio' : tipo === 'Sugestão' ? 'da sugestão' : 'da denúncia'}.`,
+        description: `Por favor, informe o assunto ${tipoAtual === 'Elogio' ? 'do elogio' : tipoAtual === 'Sugestão' ? 'da sugestão' : 'da denúncia'}.`,
       });
       return;
     }
 
     if (!detalhes.trim()) {
       toast.error('Campo obrigatório', {
-        description: `Por favor, descreva ${tipo === 'Elogio' ? 'seu elogio' : tipo === 'Sugestão' ? 'sua sugestão' : 'sua denúncia'} em detalhes.`,
+        description: `Por favor, descreva ${tipoAtual === 'Elogio' ? 'seu elogio' : tipoAtual === 'Sugestão' ? 'sua sugestão' : 'sua denúncia'} em detalhes.`,
       });
       return;
     }
 
     setIsSubmitting(true);
-    
-    // TODO: Implementar atualização na API
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success(`${tipo} atualizado!`);
+
+    try {
+      await updateOcorrenciaMutation.mutateAsync({
+        id: Number(id),
+        data: {
+          assunto,
+          detalhes,
+        },
+      });
+
+      toast.success(`${tipoAtual} atualizado!`);
       router.back();
-    }, 2000);
+    } catch (error: any) {
+      toast.error('Erro ao atualizar', {
+        description: error?.response?.data?.erro || 'Tente novamente.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -162,13 +148,13 @@ export default function EditarOcorrenciaScreen() {
             <View style={styles.ocorrenciaBadgeInfo}>
               <Text style={styles.ocorrenciaBadgeLabel}>Protocolo</Text>
               <Text style={[styles.ocorrenciaBadgeTitle, { color: tipoInfo.color }]}>
-                {ocorrenciaOriginal.numero_protocolo}
+                {ocorrencia?.numero_protocolo || 'Carregando...'}
               </Text>
             </View>
           </View>
           <View style={styles.setorInfo}>
             <Text style={styles.setorLabel}>Setor</Text>
-            <Text style={styles.setorValue}>{ocorrenciaOriginal.setor}</Text>
+            <Text style={styles.setorValue}>{ocorrencia?.setor || 'Carregando...'}</Text>
           </View>
         </View>
       </View>
@@ -192,7 +178,7 @@ export default function EditarOcorrenciaScreen() {
           >
             {/* Campo de Assunto */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Assunto {tipo === 'Elogio' ? 'do Elogio' : tipo === 'Sugestão' ? 'da Sugestão' : 'da Denúncia'}</Text>
+              <Text style={styles.sectionTitle}>Assunto {tipoAtual === 'Elogio' ? 'do Elogio' : tipoAtual === 'Sugestão' ? 'da Sugestão' : 'da Denúncia'}</Text>
               <Text style={styles.sectionSubtitle}>
                 Atualize o assunto se necessário
               </Text>
@@ -212,12 +198,12 @@ export default function EditarOcorrenciaScreen() {
             {/* Campo de Detalhes */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>
-                {tipo === 'Elogio' ? 'Descrição Detalhada' : tipo === 'Sugestão' ? 'Descrição da Sugestão' : 'Descrição Detalhada dos Fatos'}
+                {tipoAtual === 'Elogio' ? 'Descrição Detalhada' : tipoAtual === 'Sugestão' ? 'Descrição da Sugestão' : 'Descrição Detalhada dos Fatos'}
               </Text>
               <Text style={styles.sectionSubtitle}>
-                {tipo === 'Elogio' 
+                {tipoAtual === 'Elogio' 
                   ? 'Conte-nos sobre sua experiência positiva: o que aconteceu, quando, onde, quem te atendeu e por que você está elogiando.'
-                  : tipo === 'Sugestão'
+                  : tipoAtual === 'Sugestão'
                   ? 'Descreva sua sugestão em detalhes: o que você propõe, como pode melhorar o serviço e quais benefícios trará.'
                   : 'Descreva em detalhes: o que aconteceu, quando, onde, quem está envolvido, valores (se houver), documentos relacionados, etc.'
                 }
@@ -236,7 +222,7 @@ export default function EditarOcorrenciaScreen() {
             </View>
 
             {/* Aviso de Sigilo (apenas para Denúncias) */}
-            {tipo === 'Denúncia' && (
+            {tipoAtual === 'Denúncia' && (
               <View style={styles.warningCard}>
                 <Ionicons name="lock-closed" size={20} color="#92400E" />
                 <Text style={styles.warningText}>

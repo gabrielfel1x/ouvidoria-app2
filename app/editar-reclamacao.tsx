@@ -1,5 +1,7 @@
 import Colors from '@/constants/Colors';
+import { useReclamacao, useUpdateReclamacao } from '@/hooks/useReclamacoes';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -25,6 +27,7 @@ import { toast } from 'sonner-native';
 export default function EditarReclamacaoScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const { id } = params;
   const primary = Colors.light.primary;
   
   // Estados
@@ -42,19 +45,8 @@ export default function EditarReclamacaoScreen() {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const mapRef = useRef<MapView>(null);
 
-  // Dados mockados - em produção viriam da API baseado no ID
-  const reclamacaoOriginal = {
-    id: 1,
-    numero_protocolo: '2024092800123',
-    descricao: 'Grande buraco na Rua das Flores, altura do número 123',
-    endereco: 'Rua das Flores, 123',
-    localizacao: '-23.5505,-46.6333',
-    imagem: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800',
-    categoria: {
-      id: 1,
-      nome: 'Vias Públicas'
-    }
-  };
+  const { data: reclamacao, isLoading } = useReclamacao(Number(id));
+  const updateReclamacaoMutation = useUpdateReclamacao();
 
   useEffect(() => {
     Animated.parallel([
@@ -70,26 +62,23 @@ export default function EditarReclamacaoScreen() {
       }),
     ]).start();
 
-    // Carregar dados da reclamação
-    loadReclamacaoData();
   }, []);
 
-  const loadReclamacaoData = () => {
-    // Preencher campos com dados existentes
-    setDescription(reclamacaoOriginal.descricao);
-    setAddress(reclamacaoOriginal.endereco);
-    setPhoto(reclamacaoOriginal.imagem);
-    
-    // Parse da localização
-    const [lat, lng] = reclamacaoOriginal.localizacao.split(',').map(coord => parseFloat(coord.trim()));
-    if (!isNaN(lat) && !isNaN(lng)) {
-      setLocation({
-        latitude: lat,
-        longitude: lng,
-        accuracy: 10
-      });
+  useEffect(() => {
+    if (!reclamacao) return;
+    setDescription(reclamacao.descricao || '');
+    setAddress(reclamacao.endereco || '');
+    if (reclamacao.imagem) {
+      const url = typeof reclamacao.imagem === 'string' ? reclamacao.imagem : (reclamacao.imagem as any)?.url;
+      if (url) setPhoto(url);
     }
-  };
+    if (reclamacao.localizacao) {
+      const [lat, lng] = reclamacao.localizacao.split(',').map(c => parseFloat(c.trim()));
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setLocation({ latitude: lat, longitude: lng, accuracy: 10 });
+      }
+    }
+  }, [reclamacao]);
 
   const handleTakePhoto = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -321,13 +310,35 @@ export default function EditarReclamacaoScreen() {
     }
 
     setIsSubmitting(true);
-    
-    // TODO: Implementar atualização na API
-    setTimeout(() => {
-      setIsSubmitting(false);
+
+    try {
+      let imagemBase64: string | undefined;
+      if (photo && !photo.startsWith('http')) {
+        const base64 = await FileSystem.readAsStringAsync(photo, { encoding: 'base64' as any });
+        imagemBase64 = `data:image/jpeg;base64,${base64}`;
+      }
+
+      const localizacao = location ? `${location.latitude},${location.longitude}` : undefined;
+
+      await updateReclamacaoMutation.mutateAsync({
+        id: Number(id),
+        data: {
+          descricao: description,
+          endereco: address,
+          localizacao,
+          imagem: imagemBase64,
+        },
+      });
+
       toast.success('Reclamação atualizada!');
       router.back();
-    }, 2000);
+    } catch (error: any) {
+      toast.error('Erro ao atualizar', {
+        description: error?.response?.data?.erro || 'Tente novamente.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -351,7 +362,7 @@ export default function EditarReclamacaoScreen() {
         <View style={styles.problemInfo}>
           <View style={styles.problemBadge}>
             <Ionicons name="information-circle-outline" size={20} color="#6B7280" />
-            <Text style={styles.problemText}>{reclamacaoOriginal.categoria.nome} - Protocolo: {reclamacaoOriginal.numero_protocolo}</Text>
+            <Text style={styles.problemText}>{reclamacao?.categoria?.nome || 'Categoria'} - Protocolo: {reclamacao?.numero_protocolo}</Text>
           </View>
         </View>
       </View>

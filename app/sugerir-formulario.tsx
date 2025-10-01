@@ -1,3 +1,4 @@
+import SuccessAlert from '@/components/SuccessAlert';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/auth-context';
 import { useCreateOcorrencia } from '@/hooks/useOcorrencias';
@@ -30,6 +31,7 @@ export default function SugerirFormularioScreen() {
   
   const [assunto, setAssunto] = useState('');
   const [detalhes, setDetalhes] = useState('');
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -90,14 +92,8 @@ export default function SugerirFormularioScreen() {
 
       await createOcorrenciaMutation.mutateAsync(ocorrenciaData);
 
-      toast.success('Sugestão enviada!', {
-        description: 'Obrigado por contribuir para melhorar nossos serviços.',
-      });
-      
-      setTimeout(() => {
-        router.back();
-        router.back();
-      }, 1500);
+      // Mostra o alerta de sucesso personalizado
+      setShowSuccessAlert(true);
 
     } catch (error: any) {
       console.error('Erro ao enviar sugestão:', error);
@@ -232,6 +228,22 @@ export default function SugerirFormularioScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Alerta de Sucesso Personalizado */}
+      <SuccessAlert
+        visible={showSuccessAlert}
+        onClose={() => {
+          setShowSuccessAlert(false);
+          router.back();
+          router.back();
+        }}
+        title="Sugestão Enviada!"
+        message="Obrigado por contribuir para melhorar nossos serviços! Sua ideia será analisada pela equipe."
+        icon="bulb"
+        iconColor="#3B82F6"
+        backgroundColor="#3B82F6"
+        duration={3000}
+      />
     </View>
   );
 }
