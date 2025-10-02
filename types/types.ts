@@ -36,6 +36,28 @@ export interface User {
   ativo: boolean;
 }
 
+export interface ChangePasswordRequest {
+  senhaAtual: string;
+  novaSenha: string;
+}
+
+export interface DesativarContaRequest {
+  usuario_id: number;
+}
+
+export interface AtualizarTokenRequest {
+  usuario_id: number;
+  token_cel: string;
+}
+
+export interface EsqueciSenhaRequest {
+  email: string;
+}
+
+export interface ApiResponse {
+  retorno: string;
+}
+
 export enum TipoOcorrencia {
   SUGESTAO = 'Sugestão',
   ELOGIO = 'Elogio', 

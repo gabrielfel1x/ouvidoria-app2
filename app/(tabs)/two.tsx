@@ -1,9 +1,11 @@
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/auth-context';
+import { useUsuario } from '@/hooks/useUsuarios';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -19,6 +21,25 @@ export default function PerfilScreen() {
   const insets = useSafeAreaInsets();
   const primary = Colors.light.primary;
   const { user, signOut, isLoading } = useAuth();
+  const { data: userData, refetch: refetchUser, isRefetching } = useUsuario(user?.id || 0, !!user?.id);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user?.id) {
+        refetchUser();
+      }
+    }, [user?.id, refetchUser])
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (user?.id) {
+        refetchUser();
+      }
+    }, 30000); // Refresh a cada 30 segundos
+
+    return () => clearInterval(interval);
+  }, [user?.id, refetchUser]);
 
   const handleLogout = async () => {
       await signOut();
@@ -51,12 +72,17 @@ export default function PerfilScreen() {
         <View style={styles.headerContent}>
           <View style={[styles.avatarContainer, { backgroundColor: primary }]}>
             <Text style={styles.avatarText}>
-              {user?.nome?.charAt(0).toUpperCase() || 'U'}
+              {userData?.nome?.charAt(0).toUpperCase() || user?.nome?.charAt(0).toUpperCase() || 'U'}
             </Text>
           </View>
-          <Text style={styles.headerTitle}>{user?.nome || 'Usuário'}</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>{userData?.nome || user?.nome || 'Usuário'}</Text>
+            {isRefetching && (
+              <ActivityIndicator size="small" color={primary} style={styles.refreshIndicator} />
+            )}
+          </View>
           <Text style={styles.headerSubtitle}>
-            {user?.email}
+            {userData?.email || user?.email}
           </Text>
         </View>
       </View>
@@ -72,7 +98,7 @@ export default function PerfilScreen() {
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Telefone</Text>
-              <Text style={styles.infoValue}>{formatTelefone(user?.telefone || '')}</Text>
+              <Text style={styles.infoValue}>{formatTelefone(userData?.telefone || user?.telefone || '')}</Text>
             </View>
           </View>
 
@@ -82,7 +108,7 @@ export default function PerfilScreen() {
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>CPF</Text>
-              <Text style={styles.infoValue}>{formatCPF(user?.cpf || '')}</Text>
+              <Text style={styles.infoValue}>{formatCPF(userData?.cpf || user?.cpf || '')}</Text>
             </View>
           </View>
 
@@ -92,7 +118,7 @@ export default function PerfilScreen() {
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Endereço</Text>
-              <Text style={styles.infoValue}>{user?.endereco || '-'}</Text>
+              <Text style={styles.infoValue}>{userData?.endereco || user?.endereco || '-'}</Text>
             </View>
           </View>
 
@@ -102,7 +128,7 @@ export default function PerfilScreen() {
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Bairro</Text>
-              <Text style={styles.infoValue}>{user?.bairro || '-'}</Text>
+              <Text style={styles.infoValue}>{userData?.bairro || user?.bairro || '-'}</Text>
             </View>
           </View>
         </View>
@@ -111,40 +137,64 @@ export default function PerfilScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => router.push('/minhas-manifestacoes')}
+            activeOpacity={0.7}
           >
-            <Ionicons name="document-text-outline" size={24} color={primary} />
-            <Text style={styles.menuText}>Minhas Manifestações</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            <View style={[styles.menuIcon, { backgroundColor: '#3B82F6' }]}>
+              <Ionicons name="document-text" size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.menuInfo}>
+              <Text style={[styles.menuText, { color: '#3B82F6' }]}>Minhas Manifestações</Text>
+              <Text style={styles.menuDescription}>Acompanhe suas manifestações</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#3B82F6" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="settings-outline" size={24} color={primary} />
-            <Text style={styles.menuText}>Configurações</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/configuracoes')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.menuIcon, { backgroundColor: '#8B5CF6' }]}>
+              <Ionicons name="settings" size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.menuInfo}>
+              <Text style={[styles.menuText, { color: '#8B5CF6' }]}>Configurações</Text>
+              <Text style={styles.menuDescription}>Gerencie suas preferências</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#8B5CF6" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="help-circle-outline" size={24} color={primary} />
-            <Text style={styles.menuText}>Ajuda e Suporte</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="information-circle-outline" size={24} color={primary} />
-            <Text style={styles.menuText}>Sobre o App</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/sobre-app')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.menuIcon, { backgroundColor: '#F59E0B' }]}>
+              <Ionicons name="information-circle" size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.menuInfo}>
+              <Text style={[styles.menuText, { color: '#F59E0B' }]}>Sobre o App</Text>
+              <Text style={styles.menuDescription}>Informações do aplicativo</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#F59E0B" />
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={[styles.logoutButton, { borderColor: '#EF4444' }]}
             onPress={handleLogout}
+            activeOpacity={0.7}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="#EF4444" />
             ) : (
               <>
-                <Ionicons name="log-out-outline" size={24} color="#EF4444" />
-                <Text style={[styles.logoutText, { color: '#EF4444' }]}>Sair</Text>
+                <View style={[styles.menuIcon, { backgroundColor: '#EF4444' }]}>
+                  <Ionicons name="log-out" size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.menuInfo}>
+                  <Text style={[styles.logoutText, { color: '#EF4444' }]}>Sair</Text>
+                  <Text style={styles.menuDescription}>Fazer logout da conta</Text>
+                </View>
               </>
             )}
           </TouchableOpacity>
@@ -180,12 +230,20 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_700Bold',
     color: '#FFFFFF',
   },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   headerTitle: {
     fontSize: 24,
     fontFamily: 'Outfit_700Bold',
     color: '#111827',
-    marginBottom: 8,
     textAlign: 'center',
+  },
+  refreshIndicator: {
+    marginLeft: 8,
   },
   headerSubtitle: {
     fontSize: 16,
@@ -256,28 +314,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    padding: 20,
+    padding: 16,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    marginBottom: 12,
+  },
+  menuIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  menuInfo: {
+    flex: 1,
+    gap: 2,
   },
   menuText: {
-    flex: 1,
     fontSize: 16,
-    fontFamily: 'Outfit_500Medium',
-    color: '#111827',
-    marginLeft: 16,
+    fontFamily: 'Outfit_600SemiBold',
+  },
+  menuDescription: {
+    fontSize: 13,
+    fontFamily: 'Outfit_400Regular',
+    color: '#6B7280',
+    lineHeight: 18,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    padding: 20,
+    padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    marginTop: 20,
-    gap: 12,
+    marginTop: 8,
   },
   logoutText: {
     fontSize: 16,

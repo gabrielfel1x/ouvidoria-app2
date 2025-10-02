@@ -94,6 +94,13 @@ function RootLayoutNav() {
                   gestureEnabled: true, // Permite voltar do cadastro para login
                 }} 
               />
+              <Stack.Screen 
+                name="configuracoes" 
+                options={{ 
+                  headerShown: false,
+                  gestureEnabled: true,
+                }} 
+              />
               <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
             </Stack>
             <Toaster theme='light' />
