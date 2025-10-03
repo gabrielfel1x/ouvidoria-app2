@@ -20,9 +20,22 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
+
+// Importação condicional do MapView apenas para plataformas nativas
+let MapView: any = null;
+let Marker: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const Maps = require('react-native-maps');
+    MapView = Maps.default;
+    Marker = Maps.Marker;
+  } catch (error) {
+    console.warn('react-native-maps não disponível:', error);
+  }
+}
 
 export default function EditarReclamacaoScreen() {
   const insets = useSafeAreaInsets();
@@ -43,7 +56,7 @@ export default function EditarReclamacaoScreen() {
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
 
   const { data: reclamacao, isLoading } = useReclamacao(Number(id));
   const updateReclamacaoMutation = useUpdateReclamacao();
@@ -532,25 +545,37 @@ export default function EditarReclamacaoScreen() {
                   </View>
                   
                   <View style={styles.mapContainer}>
-                    <MapView
-                      ref={mapRef}
-                      style={styles.map}
-                      initialRegion={{
-                        latitude: location.latitude,
-                        longitude: location.longitude,
-                        latitudeDelta: 0.005,
-                        longitudeDelta: 0.005,
-                      }}
-                    >
-                      <Marker
-                        coordinate={{
+                    {Platform.OS !== 'web' && MapView ? (
+                      <MapView
+                        ref={mapRef}
+                        style={styles.map}
+                        initialRegion={{
                           latitude: location.latitude,
                           longitude: location.longitude,
+                          latitudeDelta: 0.005,
+                          longitudeDelta: 0.005,
                         }}
-                        title="Localização do Problema"
-                        description={address}
-                      />
-                    </MapView>
+                      >
+                        {Marker && (
+                          <Marker
+                            coordinate={{
+                              latitude: location.latitude,
+                              longitude: location.longitude,
+                            }}
+                            title="Localização do Problema"
+                            description={address}
+                          />
+                        )}
+                      </MapView>
+                    ) : (
+                      <View style={[styles.map, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#F3F4F6' }]}>
+                        <Ionicons name="location" size={48} color="#10B981" />
+                        <Text style={styles.mapCoordinatesText}>
+                          {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                        </Text>
+                        <Text style={styles.mapHintText}>Mapa não disponível na versão web</Text>
+                      </View>
+                    )}
                   </View>
                   
                   <View style={styles.mapPreviewFooter}>
@@ -643,6 +668,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     gap: 8,
+  },
+  mapHintText: {
+    fontSize: 11,
+    fontFamily: 'Outfit_400Regular',
+    color: '#9CA3AF',
   },
   problemText: {
     fontSize: 13,

@@ -3,16 +3,32 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Dimensions,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
 import { toast } from 'sonner-native';
+
+// Importação condicional do MapView apenas para plataformas nativas
+let MapView: any = null;
+let Marker: any = null;
+let Region: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const Maps = require('react-native-maps');
+    MapView = Maps.default;
+    Marker = Maps.Marker;
+    Region = Maps.Region;
+  } catch (error) {
+    console.warn('react-native-maps não disponível:', error);
+  }
+}
 
 const { width, height } = Dimensions.get('window');
 
@@ -45,9 +61,9 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(initialLocation);
-  const [mapRegion, setMapRegion] = useState<Region | null>(null);
+  const [mapRegion, setMapRegion] = useState<any>(null);
   
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
@@ -355,8 +371,8 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         </View>
       )}
 
-      {/* Mapa interativo */}
-      {showMap && selectedLocation && (
+      {/* Mapa interativo - apenas para plataformas nativas */}
+      {showMap && selectedLocation && Platform.OS !== 'web' && MapView && (
         <View style={styles.mapPreviewWrapper}>
           <View style={styles.mapPreviewHeader}>
             <View style={styles.mapPreviewBadge}>
@@ -389,14 +405,16 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
               showsUserLocation={false}
               showsMyLocationButton={false}
             >
-              <Marker
-                coordinate={{
-                  latitude: selectedLocation.latitude,
-                  longitude: selectedLocation.longitude,
-                }}
-                title="Localização Selecionada"
-                description={address}
-              />
+              {Marker && (
+                <Marker
+                  coordinate={{
+                    latitude: selectedLocation.latitude,
+                    longitude: selectedLocation.longitude,
+                  }}
+                  title="Localização Selecionada"
+                  description={address}
+                />
+              )}
             </MapView>
           </View>
           
@@ -406,6 +424,40 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
               {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
             </Text>
             <Text style={styles.mapHintText}>Toque no mapa para ajustar</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Fallback para web - apenas mostrar coordenadas */}
+      {showMap && selectedLocation && Platform.OS === 'web' && (
+        <View style={styles.mapPreviewWrapper}>
+          <View style={styles.mapPreviewHeader}>
+            <View style={styles.mapPreviewBadge}>
+              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+              <Text style={styles.mapPreviewBadgeText}>Localização Confirmada</Text>
+            </View>
+            {selectedLocation.accuracy && (
+              <View style={[
+                styles.accuracyBadge,
+                selectedLocation.accuracy <= 10 ? styles.accuracyGood : styles.accuracyWarning
+              ]}>
+                <Text style={styles.accuracyText}>
+                  ±{Math.round(selectedLocation.accuracy)}m
+                </Text>
+              </View>
+            )}
+          </View>
+          
+          <View style={[styles.mapContainer, { height: 100, justifyContent: 'center', alignItems: 'center' }]}>
+            <Ionicons name="location" size={48} color="#10B981" />
+            <Text style={styles.mapCoordinatesText}>
+              {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
+            </Text>
+          </View>
+          
+          <View style={styles.mapPreviewFooter}>
+            <Ionicons name="information-circle" size={16} color="#6B7280" />
+            <Text style={styles.mapHintText}>Mapa não disponível na versão web</Text>
           </View>
         </View>
       )}

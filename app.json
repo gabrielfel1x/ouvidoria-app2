@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "ouvidoria-app2",
+    "name": "Ouvidoria App",
     "slug": "ouvidoria-app2",
     "version": "1.0.0",
+    "description": "Aplicativo de Ouvidoria para denúncias, reclamações, sugestões e elogios",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ouvidoriaapp2",
@@ -14,15 +15,23 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gabrielfelxx.ouvidoriaapp2"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.gabrielfelxx.ouvidoriaapp2",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -41,6 +50,18 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fb9ad45a-6878-4b86-8d34-bdbc00e7b60a"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/fb9ad45a-6878-4b86-8d34-bdbc00e7b60a"
     }
   }
 }
