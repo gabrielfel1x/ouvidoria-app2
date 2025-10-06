@@ -2,7 +2,7 @@ import { storageAuthTokenGet } from '@/storage/storage-auth-token';
 import axios from 'axios';
 
 export const api = axios.create({
-  baseURL: 'https://ouvidoria-api-74b0526ccdf6.herokuapp.com',
+  baseURL: 'https://ouvidoria-api-74b0526ccdf6.herokuapp.com/',
   headers: {
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': true,
