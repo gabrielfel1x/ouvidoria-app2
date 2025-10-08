@@ -4,8 +4,8 @@ import { useAuth } from '@/context/auth-context';
 import { useRegister } from '@/hooks/useRegister';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
@@ -30,6 +30,8 @@ export default function CadastroScreen() {
   const { signIn, isLoggedIn } = useAuth();
   const registerMutation = useRegister();
   const bottomPadding = insets.bottom + 100;
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   const [etapaAtual, setEtapaAtual] = useState<number>(1);
   const [form, setForm] = useState({
     nome: '',
@@ -51,7 +53,29 @@ export default function CadastroScreen() {
     }
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
   const etapa = useMemo(() => ETAPAS.find(e => e.id === etapaAtual)!, [etapaAtual]);
+
+  const scrollToEnd = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: 200, animated: true });
+    }, 100);
+  };
 
   const handleChange = (key: keyof typeof form, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -204,8 +228,16 @@ export default function CadastroScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 40, paddingBottom: bottomPadding - 40 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 40, paddingBottom: keyboardVisible ? 250 : 0 }]} 
+        keyboardShouldPersistTaps="handled" 
+        showsVerticalScrollIndicator={false}
+      >
         <View>
           <TouchableOpacity onPress={() => router.back()} style={styles.backToLoginBtn}>
             <Ionicons name="arrow-back" size={18} color={primary} />
@@ -233,6 +265,7 @@ export default function CadastroScreen() {
                   style={styles.input}
                   value={form.nome}
                   onChangeText={v => handleChange('nome', v)}
+                  onFocus={scrollToEnd}
                   placeholder="Nome completo"
                   placeholderTextColor={gray}
                   autoCapitalize="words"
@@ -247,6 +280,7 @@ export default function CadastroScreen() {
                   style={styles.input}
                   value={form.cpf}
                   onChangeText={handleCpfChange}
+                  onFocus={scrollToEnd}
                   placeholder="000.000.000-00"
                   placeholderTextColor={gray}
                   keyboardType="numeric"
@@ -262,6 +296,7 @@ export default function CadastroScreen() {
                   style={styles.input}
                   value={form.email}
                   onChangeText={v => handleChange('email', v)}
+                  onFocus={scrollToEnd}
                   placeholder="Seu email"
                   placeholderTextColor={gray}
                   autoCapitalize="none"
@@ -277,6 +312,7 @@ export default function CadastroScreen() {
                   style={styles.input}
                   value={form.telefone}
                   onChangeText={handlePhoneChange}
+                  onFocus={scrollToEnd}
                   placeholder="(00) 00000-0000"
                   placeholderTextColor={gray}
                   keyboardType="phone-pad"
@@ -292,6 +328,7 @@ export default function CadastroScreen() {
                   style={styles.input}
                   value={form.endereco}
                   onChangeText={v => handleChange('endereco', v)}
+                  onFocus={scrollToEnd}
                   placeholder="Rua, número"
                   placeholderTextColor={gray}
                   autoCapitalize="words"
@@ -306,6 +343,7 @@ export default function CadastroScreen() {
                   style={styles.input}
                   value={form.bairro}
                   onChangeText={v => handleChange('bairro', v)}
+                  onFocus={scrollToEnd}
                   placeholder="Bairro"
                   placeholderTextColor={gray}
                   autoCapitalize="words"
@@ -320,6 +358,7 @@ export default function CadastroScreen() {
                   style={styles.input}
                   value={form.senha}
                   onChangeText={v => handleChange('senha', v)}
+                  onFocus={scrollToEnd}
                   placeholder="Senha"
                   placeholderTextColor={gray}
                   autoCapitalize="none"
@@ -338,6 +377,7 @@ export default function CadastroScreen() {
                   style={styles.input}
                   value={form.confirmarSenha}
                   onChangeText={v => handleChange('confirmarSenha', v)}
+                  onFocus={scrollToEnd}
                   placeholder="Confirmar senha"
                   placeholderTextColor={gray}
                   autoCapitalize="none"
@@ -540,7 +580,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingBottom: 8,
-    flex: 1,
   },
   bottomIllustration: {
     width: 360,

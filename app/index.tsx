@@ -4,7 +4,7 @@ import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
@@ -13,9 +13,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const { signIn, isLoggedIn, isLoading: authLoading } = useAuth();
   const hasRedirected = useRef(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   const bottomPadding = insets.bottom + 100;
 
   const isDisabled = useMemo(() => !emailOrCpf.trim() || !password.trim() || isLoading, [emailOrCpf, password, isLoading]);
@@ -26,6 +28,28 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     }
   }, [isLoggedIn, authLoading]);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
+  const scrollToEnd = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
 
   const handleLogin = async () => {
     if (isDisabled) return;
@@ -51,8 +75,16 @@ export default function LoginScreen() {
   const gray = Colors.light.gray;
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 28, paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView 
+        ref={scrollViewRef}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 28, paddingBottom: keyboardVisible ? 250 : 0 }]} 
+        keyboardShouldPersistTaps="handled" 
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.content}>
           <Text style={styles.title}>Ouvidoria<Text style={{ color: primary, fontFamily: 'Outfit_700Bold' }}>Móvel</Text></Text>
           <Text style={styles.subtitle}>Entre para registrar relatos e acompanhar respostas da sua instituição</Text>
@@ -72,6 +104,7 @@ export default function LoginScreen() {
                 style={styles.input}
                 value={emailOrCpf}
                 onChangeText={setEmailOrCpf}
+                onFocus={scrollToEnd}
                 placeholder="Email ou CPF"
                 placeholderTextColor={gray}
                 keyboardType="email-address"
@@ -86,6 +119,7 @@ export default function LoginScreen() {
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
+                onFocus={scrollToEnd}
                 placeholder="Senha"
                 placeholderTextColor={gray}
                 secureTextEntry={!showPassword}
@@ -133,7 +167,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   content: {
-    flex: 1,
     gap: 12,
   },
   title: {
