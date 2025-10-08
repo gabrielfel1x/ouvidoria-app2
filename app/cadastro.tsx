@@ -1,5 +1,4 @@
 import { Text } from '@/components/Themed';
-import Waves from '@/components/Waves';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/auth-context';
 import { useRegister } from '@/hooks/useRegister';
@@ -30,7 +29,7 @@ export default function CadastroScreen() {
   const gray = Colors.light.gray;
   const { signIn, isLoggedIn } = useAuth();
   const registerMutation = useRegister();
-
+  const bottomPadding = insets.bottom + 100;
   const [etapaAtual, setEtapaAtual] = useState<number>(1);
   const [form, setForm] = useState({
     nome: '',
@@ -87,7 +86,6 @@ export default function CadastroScreen() {
     const digits = apenasDigitos(cpf);
     if (digits.length !== 11) return false;
     
-    // Verifica se todos os dígitos são iguais
     if (/^(\d)\1+$/.test(digits)) return false;
     
     return true;
@@ -154,11 +152,9 @@ export default function CadastroScreen() {
 
   const onSubmit = async () => {
     try {
-      // Preparar dados para envio (remover formatação)
       const cpfLimpo = apenasDigitos(form.cpf);
       const telefoneLimpo = apenasDigitos(form.telefone);
 
-      // Registrar usuário
       const response = await registerMutation.mutateAsync({
         nome: form.nome.trim(),
         email: form.email.trim().toLowerCase(),
@@ -171,7 +167,6 @@ export default function CadastroScreen() {
 
       toast.success('Conta criada com sucesso!');
 
-      // Auto-login após cadastro
       if (response.token) {
         await signIn({
           cpf_ou_email: form.email.trim().toLowerCase(),
@@ -210,13 +205,13 @@ export default function CadastroScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.wavesTop} pointerEvents="none">
-        <View style={styles.wavesFlipped}>
-          <Waves height={220} />
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 40, paddingBottom: bottomPadding - 40 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backToLoginBtn}>
+            <Ionicons name="arrow-back" size={18} color={primary} />
+            <Text style={styles.backToLoginText}>Voltar</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 140 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Text style={styles.title}>Crie sua conta</Text>
           <Text style={styles.subtitle}>Etapa {etapaAtual} de {ETAPAS.length}</Text>
@@ -381,7 +376,6 @@ export default function CadastroScreen() {
             </View>
           </View>
         </View>
-      </ScrollView>
       <View style={styles.bottomImageWrap} pointerEvents="none">
         {Platform.OS !== 'web' ? (
           <Image source={require('../assets/images/megafone.png')} style={styles.bottomIllustration} resizeMode="contain" />
@@ -389,6 +383,7 @@ export default function CadastroScreen() {
           <Image source={require('../assets/images/splash-icon.png')} style={styles.bottomIllustration} resizeMode="contain" />
         )}
       </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -488,6 +483,22 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 8,
   },
+  // backToLogin: {
+  //   flex: 1,
+  //   borderRadius: 28,
+  // },
+  backToLoginBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  backToLoginText: {
+    fontSize: 16,
+    fontFamily: 'Outfit_600SemiBold',
+    color: Colors.light.primary,
+  },
   backBtn: {
     flex: 1,
     height: 56,
@@ -526,13 +537,10 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   bottomImageWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingBottom: 8,
+    flex: 1,
   },
   bottomIllustration: {
     width: 360,

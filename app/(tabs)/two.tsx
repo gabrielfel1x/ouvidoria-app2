@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,11 +18,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
+const { width, height } = Dimensions.get('window');
+const H_PADDING = width > 768 ? 40 : 20;
+
 export default function PerfilScreen() {
   const insets = useSafeAreaInsets();
   const primary = Colors.light.primary;
   const { user, signOut, isLoading } = useAuth();
   const { data: userData, refetch: refetchUser, isRefetching } = useUsuario(user?.id || 0, !!user?.id);
+  const bottomPadding = insets.bottom + 100;
 
   useFocusEffect(
     React.useCallback(() => {
@@ -87,8 +92,7 @@ export default function PerfilScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Card de Informações Pessoais */}
+      <ScrollView style={[styles.content, { paddingBottom: bottomPadding }]} showsVerticalScrollIndicator={false}>
         <View style={styles.infoCard}>
           <Text style={styles.sectionTitle}>Informações Pessoais</Text>
           
@@ -254,7 +258,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 20
   },
   infoCard: {
     backgroundColor: '#FFFFFF',

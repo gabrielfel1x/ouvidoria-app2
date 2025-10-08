@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import {
   Animated,
   Dimensions,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,14 +15,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
-const H_PADDING = 20;
-const GRID_GAP = 10;
+const { width, height } = Dimensions.get('window');
+const H_PADDING = width > 768 ? 40 : 20;
+const GRID_GAP = width > 768 ? 16 : 10;
 const CARD_WIDTH = (width - (H_PADDING * 2) - GRID_GAP) / 2;
+const isWeb = Platform.OS === 'web';
+const isTablet = width > 768;
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const topPadding = insets.top + 20;
+  const topPadding = insets.top + (isWeb ? 10 : 20);
+  const bottomPadding = insets.bottom + (isWeb ? 40 : 100);
   const fadeAnim = useRef(new Animated.Value(0));
   const slideAnim = useRef(new Animated.Value(50));
   const primary = Colors.light.primary;
@@ -90,7 +94,7 @@ export default function HomeScreen() {
 
       <View style={styles.headerBar}>
         <View style={styles.headerLeft}>
-          <Ionicons name="megaphone" size={24} color={primary} style={styles.headerIcon} />
+          <Ionicons name="megaphone" size={isTablet ? 28 : 24} color={primary} style={styles.headerIcon} />
           <View>
             <Text style={styles.headerTitle}>Ouvidoria Móvel</Text>
             <Text style={styles.headerSubtitle}>Sua voz é importante</Text>
@@ -99,7 +103,7 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView 
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={[styles.scrollContainer, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}
         bounces={true}
       >
@@ -121,15 +125,15 @@ export default function HomeScreen() {
             {menuItems.map((item, index) => (
               <TouchableOpacity
                 key={item.id}
-                style={[styles.menuCard, { backgroundColor: item.color + '15' }]}
+                style={[styles.menuCard, { backgroundColor: item.color }]}
                 onPress={() => handleMenuPress(item)}
                 activeOpacity={0.8}
               >
-                <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
+                <View style={[styles.iconContainer]}>
                   <Ionicons 
                     name={item.icon as any} 
-                    size={32} 
-                    color="#FFFFFF" 
+                    size={isTablet ? 36 : 32} 
+                    color={item.color} 
                   />
                 </View>
                 <Text style={[styles.cardTitle, { color: '#1F2937' }]} numberOfLines={1}>{item.title}</Text>
@@ -154,7 +158,7 @@ export default function HomeScreen() {
           >
             <View style={styles.manifestationsContent}>
               <View style={styles.manifestationsIcon}>
-                <Ionicons name="list-outline" size={28} color="#FFFFFF" />
+                <Ionicons name="list-outline" size={isTablet ? 32 : 28} color="#FFFFFF" />
               </View>
               <View style={styles.manifestationsText}>
                 <Text style={styles.manifestationsTitle}>Minhas Manifestações</Text>
@@ -178,7 +182,7 @@ export default function HomeScreen() {
         >
           <View style={styles.infoCard}>
             <View style={styles.infoIcon}>
-              <Ionicons name="information-circle-outline" size={24} color={primary} />
+              <Ionicons name="information-circle-outline" size={isTablet ? 28 : 24} color={primary} />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>Como funciona?</Text>
@@ -191,7 +195,7 @@ export default function HomeScreen() {
 
           <View style={styles.infoCard}>
             <View style={styles.infoIcon}>
-              <Ionicons name="time-outline" size={24} color={primary} />
+              <Ionicons name="time-outline" size={isTablet ? 28 : 24} color={primary} />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>Prazo de resposta</Text>
@@ -216,11 +220,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: H_PADDING,
+    paddingVertical: isTablet ? 18 : 14,
     borderRadius: 16,
-    marginHorizontal: 20,
-    marginBottom: 14
+    marginHorizontal: H_PADDING,
+    marginBottom: isTablet ? 20 : 14
   },
   headerLeft: {
     flexDirection: 'row',
@@ -236,39 +240,38 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: isTablet ? 18 : 16,
     fontFamily: 'Outfit_700Bold',
     color: '#111827',
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: isTablet ? 15 : 13,
     fontFamily: 'Outfit_400Regular',
     color: '#6B7280',
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: H_PADDING,
-    paddingBottom: 160,
   },
   heroTitle: {
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: isTablet ? 40 : 32,
+    lineHeight: isTablet ? 48 : 38,
     fontFamily: 'Outfit_600SemiBold',
     color: '#111827',
-    paddingVertical: 20,
+    paddingVertical: isTablet ? 28 : 20,
     textAlign: 'left',
     paddingHorizontal: 8,
   },
   menuSection: {
-    marginBottom: 24,
+    marginBottom: isTablet ? 32 : 24,
   },
   manifestationsSection: {
-    marginBottom: 32,
+    marginBottom: isTablet ? 40 : 32,
   },
   manifestationsCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: isTablet ? 24 : 20,
+    padding: isTablet ? 28 : 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -283,28 +286,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   manifestationsIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: isTablet ? 64 : 56,
+    height: isTablet ? 64 : 56,
+    borderRadius: isTablet ? 32 : 28,
     backgroundColor: Colors.light.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: isTablet ? 20 : 16,
   },
   manifestationsText: {
     flex: 1,
   },
   manifestationsTitle: {
-    fontSize: 18,
+    fontSize: isTablet ? 20 : 18,
     fontFamily: 'Outfit_600SemiBold',
     color: '#1F2937',
     marginBottom: 4,
   },
   manifestationsSubtitle: {
-    fontSize: 14,
+    fontSize: isTablet ? 15 : 14,
     fontFamily: 'Outfit_400Regular',
     color: '#6B7280',
-    lineHeight: 20,
+    lineHeight: isTablet ? 22 : 20,
   },
   menuGrid: {
     flexDirection: 'row',
@@ -314,9 +317,9 @@ const styles = StyleSheet.create({
   },
   menuCard: {
     width: CARD_WIDTH,
-    height: 160,
-    borderRadius: 24,
-    padding: 24,
+    height: isTablet ? 180 : 160,
+    borderRadius: isTablet ? 28 : 24,
+    padding: isTablet ? 28 : 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -330,27 +333,28 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   iconContainer: {
-    marginBottom: 14,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    marginBottom: isTablet ? 16 : 14,
+    width: isTablet ? 68 : 60,
+    height: isTablet ? 68 : 60,
+    borderRadius: 99,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: isTablet ? 16 : 15,
     fontFamily: 'Outfit_700Bold',
     textAlign: 'center',
   },
   infoSection: {
-    gap: 16,
+    gap: isTablet ? 20 : 16,
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 16,
+    padding: isTablet ? 24 : 20,
+    borderRadius: isTablet ? 20 : 16,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -361,21 +365,21 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   infoIcon: {
-    marginRight: 16,
+    marginRight: isTablet ? 20 : 16,
   },
   infoContent: {
     flex: 1,
   },
   infoTitle: {
-    fontSize: 16,
+    fontSize: isTablet ? 18 : 16,
     fontFamily: 'Outfit_600SemiBold',
     color: '#1F2937',
     marginBottom: 4,
   },
   infoSubtitle: {
-    fontSize: 14,
+    fontSize: isTablet ? 15 : 14,
     fontFamily: 'Outfit_400Regular',
     color: '#6B7280',
-    lineHeight: 20,
+    lineHeight: isTablet ? 22 : 20,
   },
 });

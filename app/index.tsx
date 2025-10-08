@@ -1,5 +1,4 @@
 import { Text } from '@/components/Themed';
-import Waves from '@/components/Waves';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,10 +16,10 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { signIn, isLoggedIn, isLoading: authLoading } = useAuth();
   const hasRedirected = useRef(false);
+  const bottomPadding = insets.bottom + 100;
 
   const isDisabled = useMemo(() => !emailOrCpf.trim() || !password.trim() || isLoading, [emailOrCpf, password, isLoading]);
 
-  // Se já estiver logado, redireciona para a home (apenas uma vez)
   useEffect(() => {
     if (!authLoading && isLoggedIn && !hasRedirected.current) {
       hasRedirected.current = true;
@@ -53,7 +52,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 28 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 28, paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Text style={styles.title}>Ouvidoria<Text style={{ color: primary, fontFamily: 'Outfit_700Bold' }}>Móvel</Text></Text>
           <Text style={styles.subtitle}>Entre para registrar relatos e acompanhar respostas da sua instituição</Text>
@@ -119,9 +118,6 @@ export default function LoginScreen() {
           </View>
         </View>
       </ScrollView>
-      <View style={styles.wavesWrap} pointerEvents="none">
-        <Waves height={220} />
-      </View>
     </KeyboardAvoidingView>
   );
 }
