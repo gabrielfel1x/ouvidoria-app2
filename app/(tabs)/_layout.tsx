@@ -2,6 +2,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs, useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, BackHandler, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -20,6 +21,7 @@ export default function TabLayout() {
   const { isLoggedIn, isLoading } = useAuth();
   const router = useRouter();
   const hasRedirected = useRef(false);
+  const insets = useSafeAreaInsets();
 
   // Proteção de rota: redireciona para login se não estiver autenticado (apenas uma vez)
   useEffect(() => {
@@ -72,8 +74,8 @@ export default function TabLayout() {
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
-          height: 80,
-          paddingBottom: 15,
+          height: insets.bottom > 0 ? 80 + insets.bottom : 80,
+          paddingBottom: insets.bottom > 0 ? insets.bottom + 5 : 15,
           paddingTop: 15,
         },
         headerShown: false,

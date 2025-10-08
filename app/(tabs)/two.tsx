@@ -266,7 +266,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     padding: 20,
-    marginBottom: 24,
+    marginBottom: 12,
+    marginTop: 24,
   },
   sectionTitle: {
     fontSize: 18,
@@ -313,6 +314,7 @@ const styles = StyleSheet.create({
   },
   menuSection: {
     gap: 12,
+    marginBottom: 24,
   },
   menuItem: {
     flexDirection: 'row',
